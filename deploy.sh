@@ -1,70 +1,42 @@
 #!/bin/bash
 # ============================================================
-# deploy.sh — 将 public/ 目录部署到 GitHub Pages
-# 完全免费，无需付费
-# 使用前请填写下方变量
+# deploy.sh — 将日报部署到 GitHub Pages
+# 由 CatDesk Automation 每日 09:30 自动调用
 # ============================================================
 
-GITHUB_USERNAME="YOUR_GITHUB_USERNAME"   # 你的 GitHub 用户名
-REPO_NAME="kancong-daily"                # 仓库名（建议保持不变）
+GITHUB_USERNAME="lisicongcongsili"
+REPO_NAME="kancong-daily"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PUBLIC_DIR="$SCRIPT_DIR/public"
+# 从本地 .env 文件读取 Token（不上传到 GitHub）
+ENV_FILE="$(dirname "$0")/.env"
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
+fi
 
-echo "🚀 开始部署到 GitHub Pages..."
-
-# 检查 git 是否安装
-if ! command -v git &> /dev/null; then
-  echo "❌ 未找到 git，请先安装 Xcode Command Line Tools: xcode-select --install"
+if [ -z "$GITHUB_TOKEN" ]; then
+  echo "❌ 未找到 GITHUB_TOKEN，请确保 .env 文件存在"
   exit 1
 fi
 
-# 检查是否已初始化 git 仓库
-if [ ! -d "$SCRIPT_DIR/.git" ]; then
-  echo "📦 初始化 Git 仓库..."
-  cd "$SCRIPT_DIR"
-  git init
-  git remote add origin "https://github.com/${GITHUB_USERNAME}/${REPO_NAME}.git"
-fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "🚀 开始部署到 GitHub Pages..."
 
 cd "$SCRIPT_DIR"
 
-# 将 public/ 内容推送到 gh-pages 分支
-echo "📤 推送到 gh-pages 分支..."
-
-# 使用 git worktree 方式部署（不污染主分支）
-TMPDIR=$(mktemp -d)
-cp -r "$PUBLIC_DIR/." "$TMPDIR/"
-
-git fetch origin gh-pages 2>/dev/null || true
-
-# 切换到 gh-pages 分支
-if git show-ref --verify --quiet refs/heads/gh-pages; then
-  git checkout gh-pages
-else
-  git checkout --orphan gh-pages
-  git rm -rf . 2>/dev/null || true
-fi
-
-# 复制新内容
-cp -r "$TMPDIR/." .
+# 同步 public/index.html 到根目录（GitHub Pages 从根目录读取）
+cp public/index.html index.html
 
 # 提交并推送
 git add -A
 git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')" --allow-empty
-git push origin gh-pages --force
-
-# 切回主分支
-git checkout main 2>/dev/null || git checkout master 2>/dev/null || true
-
-rm -rf "$TMPDIR"
+git push https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/${REPO_NAME}.git main
 
 if [ $? -eq 0 ]; then
   echo ""
   echo "✅ 部署成功！"
   echo "🌐 访问地址: https://${GITHUB_USERNAME}.github.io/${REPO_NAME}/"
-  echo "⏱  首次部署约需 1-2 分钟生效"
 else
-  echo "❌ 部署失败，请检查 GitHub 用户名和仓库是否存在"
+  echo "❌ 部署失败"
   exit 1
 fi
