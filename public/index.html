@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>闪购营销双轨日报 · KANCONG</title>
+<meta name="description" content="美团闪购营销双轨日报，每日更新营销创意快讯与机构研究深度报告">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --orange: #FF6B00;
+    --black: #1A1A1A;
+    --bg: #F5F4F0;
+    --card: #FFFFFF;
+    --border: #E8E6E0;
+    --text: #1A1A1A;
+    --muted: #888;
+    --light: #F0F0EE;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Segoe UI", sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── 顶部导航 ── */
+  .nav {
+    background: var(--black);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-brand {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .nav-brand span { color: var(--orange); }
+  .nav-date {
+    font-size: 11px;
+    color: #666;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── 主容器 ── */
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--black);
+  }
+  .header-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header-title {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .header-meta {
+    text-align: right;
+  }
+  .header-date-big {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--black);
+  }
+  .header-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── Track 区块 ── */
+  .track { margin-bottom: 40px; }
+
+  .track-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .track-badge {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .track-badge.a { background: var(--orange); color: #fff; }
+  .track-badge.b { background: var(--black); color: #fff; }
+  .track-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--black);
+  }
+  .track-sources {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── 卡片 ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 12px;
+    transition: box-shadow 0.2s;
+  }
+  .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+  .card:last-child { margin-bottom: 0; }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .card-num {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+  .card-num.a { color: var(--orange); background: #FFF3EB; }
+  .card-num.b { color: var(--black); background: var(--light); }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--black);
+  }
+
+  .card-body {
+    font-size: 13.5px;
+    color: #444;
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+
+  /* 洞察框 */
+  .insight {
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+  }
+  .insight.a {
+    background: #FFF8F3;
+    border-left: 3px solid var(--orange);
+  }
+  .insight.b {
+    background: var(--light);
+    border-left: 3px solid var(--black);
+  }
+  .insight-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .insight-label.a { color: var(--orange); }
+  .insight-label.b { color: var(--black); }
+  .insight-text {
+    font-size: 13px;
+    line-height: 1.75;
+    color: #555;
+  }
+
+  /* 来源链接 */
+  .card-source {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .source-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .source-dot.a { background: var(--orange); }
+  .source-dot.b { background: #999; }
+  .card-source a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    word-break: break-all;
+    transition: color 0.15s;
+  }
+  .card-source a:hover { color: var(--orange); text-decoration: underline; }
+
+  /* ── 今日判断 ── */
+  .judgment {
+    background: var(--black);
+    border-radius: 14px;
+    padding: 32px;
+    margin-bottom: 40px;
+  }
+  .judgment-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+  }
+  .judgment-badge {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--orange);
+    color: var(--black);
+    text-transform: uppercase;
+  }
+  .judgment-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .judgment-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .judgment-item:last-child { margin-bottom: 0; }
+  .judgment-num {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--orange);
+    background: rgba(255,107,0,0.12);
+    border-radius: 4px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+    height: fit-content;
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+  .judgment-text {
+    font-size: 14px;
+    color: #BBB;
+    line-height: 1.8;
+  }
+  .judgment-text strong {
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* ── 历史归档 ── */
+  .archive-section { margin-bottom: 40px; }
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .archive-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .archive-item {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .archive-item:hover {
+    background: var(--black);
+    color: #fff;
+    border-color: var(--black);
+  }
+
+  /* ── Footer ── */
+  .footer {
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-left { font-size: 12px; color: var(--muted); }
+  .footer-right {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--black);
+    text-transform: uppercase;
+  }
+
+  /* ── 响应式 ── */
+  @media (max-width: 600px) {
+    .nav { padding: 0 20px; }
+    .container { padding: 32px 16px 60px; }
+    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .header-meta { text-align: left; }
+    .header-title { font-size: 28px; }
+    .judgment { padding: 24px 20px; }
+    .track-sources { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">Meituan <span>Flash Purchase</span> · Daily</div>
+  <div class="nav-date" id="nav-date"></div>
+</nav>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-eyebrow">Marketing Intelligence · 每日更新</div>
+      <div class="header-title">闪购营销双轨日报</div>
+    </div>
+    <div class="header-meta">
+      <div class="header-date-big" id="report-date">2026年3月20日 · 星期五</div>
+      <div class="header-sub">by KANCONG · 美团闪购营销</div>
+    </div>
+  </div>
+
+  <!-- ===== REPORT CONTENT START ===== -->
+  <div id="report-content">
+
+  <!-- Track A -->
+  <div class="track">
+    <div class="track-header">
+      <span class="track-badge a">Track A</span>
+      <span class="track-name">营销创意快讯</span>
+      <span class="track-sources">SocialBeta · 数英 · 刀法</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num a">01</span>
+        <span class="card-title">小米汽车 × 舒淇 + 苏炳添 双代言</span>
+      </div>
+      <div class="card-body">「新一代SU7，服务新一代」，同时签约实力派女演员与奥运短跑冠军，打出「颜值 + 速度」双重人格组合，覆盖两种截然不同的用户圈层。</div>
+      <div class="insight a">
+        <div class="insight-label a">⚡ 闪购迁移洞察</div>
+        <div class="insight-text">代言人策略正从「单一形象背书」转向「场景人格叠加」——闪购可借鉴，用不同圈层KOL分别覆盖「精致到家」与「极速履约」两种用户心智，而非只押注一种人设。</div>
+      </div>
+      <div class="card-source">
+        <span class="source-dot a"></span>
+        <a href="https://socialbeta.com/campaign/27214" target="_blank" rel="noopener">socialbeta.com/campaign/27214</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num a">02</span>
+        <span class="card-title">霸王茶姬 × F1上海站 体育营销出圈</span>
+      </div>
+      <div class="card-body">F1上海站期间，霸王茶姬再度被A妹（Ariana Grande）现场带货，借势国际顶级赛事IP实现高质量自然传播，品牌国际化形象持续强化。</div>
+      <div class="insight a">
+        <div class="insight-label a">⚡ 闪购迁移洞察</div>
+        <div class="insight-text">体育大事件是即时消费的天然触发器，赛事现场「即时补给」需求（饮品、零食、周边）是闪购可深度渗透的高频场景，赛事营销与即时履约的联动值得提前布局。</div>
+      </div>
+      <div class="card-source">
+        <span class="source-dot a"></span>
+        <a href="https://socialbeta.com/campaign/27217" target="_blank" rel="noopener">socialbeta.com/campaign/27217</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num a">03</span>
+        <span class="card-title">维多利亚的秘密 官宣单依纯为中国区代言人</span>
+      </div>
+      <div class="card-body">「是时候，让每一面都被看见」——品牌以多元女性叙事切入中国市场，选择新生代歌手而非传统超模路线，完成本土化人格重塑。</div>
+      <div class="insight a">
+        <div class="insight-label a">⚡ 闪购迁移洞察</div>
+        <div class="insight-text">「看见具体的人」正成为2026年营销核心命题，闪购用户运营同样需要从「泛人群促销」转向「场景化精准触达」，让不同生活状态的用户感受到被理解。</div>
+      </div>
+      <div class="card-source">
+        <span class="source-dot a"></span>
+        <a href="https://socialbeta.com/campaign/27218" target="_blank" rel="noopener">socialbeta.com/campaign/27218</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num a">04</span>
+        <span class="card-title">CASETiFY × 泰特美术馆 艺术IP进入日常消费品</span>
+      </div>
+      <div class="card-body">透纳、莫奈、康定斯基的经典画作被印上手机壳，艺术机构与消费品牌的跨界联名持续升温，高文化附加值商品走向大众消费场景。</div>
+      <div class="insight a">
+        <div class="insight-label a">⚡ 闪购迁移洞察</div>
+        <div class="insight-text">高文化附加值联名品正成为即时零售新品类机会，消费者愿为「有故事的商品」支付溢价，且冲动购买属性强，与闪购「即看即买即达」场景高度契合。</div>
+      </div>
+      <div class="card-source">
+        <span class="source-dot a"></span>
+        <a href="https://socialbeta.com/campaign/27220" target="_blank" rel="noopener">socialbeta.com/campaign/27220</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Track B -->
+  <div class="track">
+    <div class="track-header">
+      <span class="track-badge b">Track B</span>
+      <span class="track-name">机构研究深度报告</span>
+      <span class="track-sources">高盛 · 瑞银 · 36kr · 晚点</span>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num b">01</span>
+        <span class="card-title">互联网怪盗团 · 美团市场份额之争：谁的数据可信？</span>
+      </div>
+      <div class="card-body">瑞银援引QuestMobile数据：2026年2月美团/淘宝/京东日均单量份额为51%/42%/7%；高盛3月16日报告维持美团日均单量第一判断；美团CEO王莆中3月13日表示「以远低于竞争对手的亏损坚守超过60%的GTV份额」。易观报告（淘宝闪购份额45.2%超越美团）与上述数据形成鲜明矛盾，文章指出口径泛化是数据失真的核心原因。</div>
+      <div class="insight b">
+        <div class="insight-label b">📌 核心结论</div>
+        <div class="insight-text">多个可靠数据源同时得出美团市场份额仍然领先的结论；「谁定义口径，谁赢得叙事」正成为即时零售竞争的第二战场。</div>
+      </div>
+      <div class="card-source">
+        <span class="source-dot b"></span>
+        <a href="https://news.qq.com/rain/a/20260320A07BPN00" target="_blank" rel="noopener">news.qq.com/rain/a/20260320A07BPN00</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num b">02</span>
+        <span class="card-title">中国经济网 · 即时零售拓宽消费场景，县域市场成新增长极</span>
+      </div>
+      <div class="card-body">商务部研究院报告：2026年即时零售市场规模将突破1万亿元。淘宝闪购数据显示，AI「一句话点外卖」订单中近半数来自县城，超市百货、水果等非餐品类订单较活动上线初期增长超8倍。</div>
+      <div class="insight b">
+        <div class="insight-label b">📌 核心结论</div>
+        <div class="insight-text">即时零售正从一线城市向县域下沉，非餐品类是核心增量；AI降低操作摩擦是县域渗透的关键杠杆。</div>
+      </div>
+      <div class="card-source">
+        <span class="source-dot b"></span>
+        <a href="https://finance.sina.com.cn/jjxw/2026-03-19/doc-inhrnktx6996208.shtml" target="_blank" rel="noopener">finance.sina.com.cn · 2026-03-19</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日判断 -->
+  <div class="judgment">
+    <div class="judgment-header">
+      <span class="judgment-badge">Today's Take</span>
+      <span class="judgment-title">今日判断</span>
+    </div>
+    <div class="judgment-item">
+      <span class="judgment-num">01</span>
+      <div class="judgment-text"><strong>市场份额叙事战已成为即时零售竞争的第二战场。</strong>高盛/瑞银与易观数据的公开对立，本质是资本市场话语权的争夺。美团闪购GTV份额60%+的优势需要主动输出，品牌营销层面应强化「高客单价、高质量履约」心智，与「低价补贴抢单量」的竞争叙事形成差异化区隔。</div>
+    </div>
+    <div class="judgment-item">
+      <span class="judgment-num">02</span>
+      <div class="judgment-text"><strong>县域市场的即时零售渗透，正在从「餐饮外卖」向「非餐品类」结构性迁移。</strong>AI自然语言下单大幅降低县城用户使用门槛，需求早已存在，缺的是足够低的操作摩擦。闪购在县域的品类扩张窗口期已打开，供给侧（本地商超入驻密度）是当前最关键的制约变量。</div>
+    </div>
+    <div class="judgment-item">
+      <span class="judgment-num">03</span>
+      <div class="judgment-text"><strong>「人格叠加」趋势正在重构即时零售的用户触达逻辑。</strong>单一品牌形象已无法覆盖多元用户心智，需要用「场景人格矩阵」替代「单一代言人背书」。闪购如何在「极速履约」功能心智之上叠加「懂生活、懂你」的情感心智，是下一阶段品牌建设的核心课题。</div>
+    </div>
+  </div>
+
+  </div>
+  <!-- ===== REPORT CONTENT END ===== -->
+
+  <!-- 历史归档 -->
+  <div class="archive-section">
+    <div class="section-title">历史归档</div>
+    <div class="archive-list" id="archive-list">
+      <a class="archive-item" href="#">2026-03-20（当前）</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left">内容来源：SocialBeta · 数英网 · 中国经济网 · 互联网怪盗团 · 高盛 · 瑞银</div>
+    <div class="footer-right">KANCONG · 美团闪购营销</div>
+  </div>
+
+</div>
+
+<script>
+  // 动态显示日期
+  const d = new Date();
+  const days = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  document.getElementById('nav-date').textContent =
+    d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+</script>
+</body>
+</html>

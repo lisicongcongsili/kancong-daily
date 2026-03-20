@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>闪购营销双轨日报 {{DATE_STR}} · KANCONG</title>
+<meta name="description" content="美团闪购营销双轨日报，每日更新营销创意快讯与机构研究深度报告">
+<meta property="og:title" content="闪购营销双轨日报 {{DATE_STR}}">
+<meta property="og:description" content="Track A 营销创意快讯 + Track B 机构研究深度报告">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --orange: #FF6B00; --black: #1A1A1A; --bg: #F5F4F0;
+    --card: #FFFFFF; --border: #E8E6E0; --text: #1A1A1A;
+    --muted: #888; --light: #F0F0EE;
+  }
+  body { background: var(--bg); font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; color: var(--text); min-height: 100vh; }
+  .nav { background: var(--black); padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 52px; position: sticky; top: 0; z-index: 100; }
+  .nav-brand { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: #fff; text-transform: uppercase; }
+  .nav-brand span { color: var(--orange); }
+  .nav-date { font-size: 11px; color: #666; }
+  .container { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+  .header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid var(--black); }
+  .header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; color: var(--orange); text-transform: uppercase; margin-bottom: 8px; }
+  .header-title { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .header-meta { text-align: right; }
+  .header-date-big { font-size: 15px; font-weight: 600; }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .track { margin-bottom: 40px; }
+  .track-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .track-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.15em; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; }
+  .track-badge.a { background: var(--orange); color: #fff; }
+  .track-badge.b { background: var(--black); color: #fff; }
+  .track-name { font-size: 16px; font-weight: 700; }
+  .track-sources { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 12px; transition: box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+  .card:last-child { margin-bottom: 0; }
+  .card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+  .card-num { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+  .card-num.a { color: var(--orange); background: #FFF3EB; }
+  .card-num.b { color: var(--black); background: var(--light); }
+  .card-title { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .card-body { font-size: 13.5px; color: #444; line-height: 1.8; margin-bottom: 14px; }
+  .insight { border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 14px; }
+  .insight.a { background: #FFF8F3; border-left: 3px solid var(--orange); }
+  .insight.b { background: var(--light); border-left: 3px solid var(--black); }
+  .insight-label { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px; }
+  .insight-label.a { color: var(--orange); }
+  .insight-label.b { color: var(--black); }
+  .insight-text { font-size: 13px; line-height: 1.75; color: #555; }
+  .card-source { display: flex; align-items: center; gap: 6px; }
+  .source-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .source-dot.a { background: var(--orange); }
+  .source-dot.b { background: #999; }
+  .card-source a { font-size: 12px; color: var(--muted); text-decoration: none; word-break: break-all; transition: color 0.15s; }
+  .card-source a:hover { color: var(--orange); text-decoration: underline; }
+  .judgment { background: var(--black); border-radius: 14px; padding: 32px; margin-bottom: 40px; }
+  .judgment-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #333; }
+  .judgment-badge { font-size: 10px; font-weight: 800; letter-spacing: 0.15em; padding: 4px 10px; border-radius: 4px; background: var(--orange); color: var(--black); text-transform: uppercase; }
+  .judgment-title { font-size: 16px; font-weight: 700; color: #fff; }
+  .judgment-item { display: flex; gap: 16px; margin-bottom: 20px; }
+  .judgment-item:last-child { margin-bottom: 0; }
+  .judgment-num { font-size: 11px; font-weight: 800; color: var(--orange); background: rgba(255,107,0,0.12); border-radius: 4px; padding: 3px 8px; flex-shrink: 0; height: fit-content; margin-top: 2px; }
+  .judgment-text { font-size: 14px; color: #BBB; line-height: 1.8; }
+  .judgment-text strong { color: #fff; font-weight: 700; }
+  .archive-section { margin-bottom: 40px; }
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; }
+  .archive-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .archive-item { font-size: 12px; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; text-decoration: none; transition: all 0.15s; }
+  .archive-item:hover { background: var(--black); color: #fff; border-color: var(--black); }
+  .footer { padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .footer-left { font-size: 12px; color: var(--muted); }
+  .footer-right { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--black); text-transform: uppercase; }
+  @media (max-width: 600px) {
+    .nav { padding: 0 20px; } .container { padding: 32px 16px 60px; }
+    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .header-meta { text-align: left; } .header-title { font-size: 28px; }
+    .judgment { padding: 24px 20px; } .track-sources { display: none; }
+  }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-brand">Meituan <span>Flash Purchase</span> · Daily</div>
+  <div class="nav-date">{{DATE_STR}}</div>
+</nav>
+<div class="container">
+  <div class="header">
+    <div>
+      <div class="header-eyebrow">Marketing Intelligence · 每日更新</div>
+      <div class="header-title">闪购营销双轨日报</div>
+    </div>
+    <div class="header-meta">
+      <div class="header-date-big">{{DATE_DISPLAY}}</div>
+      <div class="header-sub">by KANCONG · 美团闪购营销</div>
+    </div>
+  </div>
+
+  <div class="track">
+    <div class="track-header">
+      <span class="track-badge a">Track A</span>
+      <span class="track-name">营销创意快讯</span>
+      <span class="track-sources">SocialBeta · 数英 · 刀法</span>
+    </div>
+    {{TRACK_A_CARDS}}
+  </div>
+
+  <div class="track">
+    <div class="track-header">
+      <span class="track-badge b">Track B</span>
+      <span class="track-name">机构研究深度报告</span>
+      <span class="track-sources">高盛 · 瑞银 · 36kr · 晚点</span>
+    </div>
+    {{TRACK_B_CARDS}}
+  </div>
+
+  <div class="judgment">
+    <div class="judgment-header">
+      <span class="judgment-badge">Today's Take</span>
+      <span class="judgment-title">今日判断</span>
+    </div>
+    {{JUDGMENT_ITEMS}}
+  </div>
+
+  <div class="archive-section">
+    <div class="section-title">历史归档</div>
+    <div class="archive-list">{{ARCHIVE_LINKS}}</div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">内容来源：{{SOURCES_TEXT}}</div>
+    <div class="footer-right">KANCONG · 美团闪购营销</div>
+  </div>
+</div>
+</body>
+</html>
