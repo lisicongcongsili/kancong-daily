@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旗舰店拉新能力分析报表</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<style>
+  @font-face { font-family:'MTNewDigitalDisplay-Bold'; src:url('https://s3plus.meituan.net/moshu-sql-iconfont/MTNewDigitalDisplay-Bold.otf') format('opentype'); font-display:swap; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#F5F6F8; font-family:PingFangSC-Regular,'PingFang SC','Microsoft YaHei',sans-serif; color:rgba(17,25,37,0.85); min-height:100vh; }
+  .page-header { background:#fff; border-bottom:1px solid #EBEDF0; padding:20px 30px; display:flex; align-items:center; gap:10px; }
+  .page-header img { width:24px; height:24px; }
+  .page-header h1 { font-size:18px; font-weight:600; }
+  .page-header .subtitle { font-size:13px; color:rgba(17,25,37,0.45); margin-left:auto; }
+  .container { width:100%; padding:24px 30px; }
+  .section-title { font-size:15px; font-weight:600; margin:24px 0 12px; padding-left:10px; border-left:3px solid #3271ED; }
+  /* 新客定义说明条 */
+  .def-bar { background:#EBF1FD; border-radius:6px; padding:10px 16px; margin-bottom:20px; font-size:12px; color:#3271ED; line-height:1.8; }
+  .def-bar strong { font-weight:600; }
+  .panel-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  .panel-card { background:#fff; border-radius:8px; padding:20px 24px; box-shadow:0 1px 4px rgba(17,25,37,0.06); }
+  .panel-card .card-title { font-size:13px; color:rgba(17,25,37,0.55); margin-bottom:10px; }
+  .panel-card .metric-value { font-family:'MTNewDigitalDisplay-Bold'; font-size:30px; color:rgba(17,25,37,0.85); line-height:1.2; }
+  .panel-card .metric-unit { font-size:13px; color:rgba(17,25,37,0.45); margin-left:4px; }
+  .panel-card .metric-sub { margin-top:6px; font-size:12px; color:rgba(17,25,37,0.45); }
+  .chart-card { background:#fff; border-radius:8px; padding:20px 24px 16px; box-shadow:0 1px 4px rgba(17,25,37,0.06); margin-bottom:20px; }
+  .chart-card-header { display:flex; align-items:flex-start; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .chart-card-header .chart-title { font-size:14px; font-weight:600; color:rgba(17,25,37,0.85); flex-shrink:0; }
+  .chart-card-header .chart-desc { font-size:12px; color:rgba(17,25,37,0.45); margin-left:auto; }
+  /* 新客定义 badge */
+  .def-badge { display:inline-flex; align-items:center; gap:4px; background:#F5F6F8; border:1px solid #E0E3E8; border-radius:4px; padding:2px 8px; font-size:11px; color:rgba(17,25,37,0.55); margin-left:8px; }
+  .def-badge .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .echarts-wrap { position:relative; width:100%; height:340px; }
+  .echarts-wrap .echarts-inner { position:absolute; inset:0; width:100%; height:100%; }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+  .insight-box { background:#fff; border-radius:8px; padding:20px 24px; box-shadow:0 1px 4px rgba(17,25,37,0.06); margin-bottom:20px; }
+  .insight-box h3 { font-size:14px; font-weight:600; margin-bottom:12px; }
+  .insight-box p { font-size:13px; color:rgba(17,25,37,0.70); line-height:1.8; margin-bottom:8px; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; margin-right:6px; margin-bottom:4px; }
+  .tag-blue { background:#EBF1FD; color:#3271ED; }
+  .tag-green { background:#E6F7F0; color:#21B584; }
+  .tag-orange { background:#FFF4E5; color:#FF8C00; }
+  /* 日期选择器 */
+  .date-picker-row { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .date-picker-row label { font-size:12px; color:rgba(17,25,37,0.55); }
+  .date-picker-row select { font-size:12px; padding:4px 8px; border:1px solid #E0E3E8; border-radius:4px; background:#fff; color:rgba(17,25,37,0.85); cursor:pointer; }
+  .page-footer { text-align:center; padding:20px 30px; font-size:12px; color:rgba(17,25,37,0.35); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <img src="https://s3plus.meituan.net/moshu-sql-iconfont/moshu.png" alt="">
+  <h1>旗舰店拉新能力分析报表</h1>
+  <span class="subtitle">数据范围：2025-10-01 ~ 2026-04-01 &nbsp;|&nbsp; 口径：非食专卖业务组·旗舰店业务组 &nbsp;|&nbsp; 生成时间：2026-04-02</span>
+</div>
+
+<div class="container">
+
+<!-- ===== 新客定义说明 ===== -->
+<div class="def-bar">
+  <strong>新客口径说明（三类定义均来自 aggr_usr_user_poi_gtv_first_order_info_base_dd）：</strong><br>
+  🔵 <strong>品牌新客</strong>：<code>is_user_brand_first_order = 1</code>，即该用户在美团平台首次购买该品牌的订单（品牌维度新客）<br>
+  🟢 <strong>二级运营组新客</strong>：<code>is_user_second_opowner_first_order = 1</code>，即该用户首次在"旗舰店业务组"下单（运营组维度新客，范围比品牌新客更宽）<br>
+  🟡 <strong>首购（平台新客）</strong>：<code>is_user_first_order = 1</code>，即该用户在美团零售平台的第一笔订单（平台维度新客，范围最宽）
+</div>
+
+<!-- ===== 总览指标 ===== -->
+<div class="section-title">总览指标（2025-10-01 至 2026-04-01）</div>
+<div class="panel-row">
+  <div class="panel-card">
+    <div class="card-title">总成单量</div>
+    <div><span class="metric-value">111.7</span><span class="metric-unit">万单</span></div>
+    <div class="metric-sub">品牌新客 98.5万单 · 二级运营组新客 88.3万单</div>
+  </div>
+  <div class="panel-card">
+    <div class="card-title">品牌新客浓度（整体）</div>
+    <div><span class="metric-value">88.14</span><span class="metric-unit">%</span></div>
+    <div class="metric-sub">每100单中约88单来自品牌新客（is_user_brand_first_order）</div>
+  </div>
+  <div class="panel-card">
+    <div class="card-title">二级运营组新客浓度（整体）</div>
+    <div><span class="metric-value">79.0</span><span class="metric-unit">%</span></div>
+    <div class="metric-sub">平台首购浓度 0.99%（is_user_first_order）</div>
+  </div>
+</div>
+
+<!-- ===== 月度上下旬趋势 ===== -->
+<div class="section-title">月度上下旬新客浓度趋势</div>
+<div class="chart-card">
+  <div class="chart-card-header">
+    <span class="chart-title">各月上下旬订单量 &amp; 三类新客浓度</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>上旬订单量</span>
+    <span class="def-badge"><span class="dot" style="background:#51C4FD"></span>下旬订单量</span>
+    <span class="def-badge"><span class="dot" style="background:#21B584"></span>品牌新客率（左%轴）</span>
+    <span class="def-badge"><span class="dot" style="background:#FFC90A"></span>二级运营组新客率（左%轴）</span>
+    <span class="def-badge"><span class="dot" style="background:#FF6B6B"></span>首购率（右%轴）</span>
+    <span class="chart-desc">2026-04仅含4月1日，数据不完整</span>
+  </div>
+  <div class="echarts-wrap" style="height:400px;">
+    <div id="chart-bm-combined" class="echarts-inner"></div>
+  </div>
+</div>
+
+<!-- ===== 品牌维度 ===== -->
+<div class="section-title">品牌维度拉新能力</div>
+<div class="chart-card">
+  <div class="chart-card-header">
+    <span class="chart-title">TOP20品牌 · 订单量 vs 品牌新客率</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客：is_user_brand_first_order=1</span>
+    <span class="chart-desc">按总订单量降序</span>
+  </div>
+  <div class="echarts-wrap" style="height:380px;">
+    <div id="chart-brand-bar" class="echarts-inner"></div>
+  </div>
+</div>
+<div class="two-col">
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-card-header">
+      <span class="chart-title">品牌新客率 TOP10（量≥5000单）</span>
+      <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客率</span>
+    </div>
+    <div class="echarts-wrap" style="height:300px;">
+      <div id="chart-brand-rate" class="echarts-inner"></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-card-header">
+      <span class="chart-title">首购新客率 TOP10（量≥5000单）</span>
+      <span class="def-badge"><span class="dot" style="background:#FFC90A"></span>首购：is_user_first_order=1</span>
+    </div>
+    <div class="echarts-wrap" style="height:300px;">
+      <div id="chart-first-rate" class="echarts-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 品牌象限气泡图 ===== -->
+<div class="chart-card" style="margin-top:0">
+  <div class="chart-card-header">
+    <span class="chart-title">品牌拉新能力 × 订单规模 象限分析</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>X轴：品牌新客率</span>
+    <span class="def-badge"><span class="dot" style="background:#21B584"></span>Y轴：月订单量（3月）</span>
+    <span class="def-badge"><span class="dot" style="background:#FFC90A"></span>气泡大小：月GTV（万元）</span>
+    <span class="chart-desc">数据口径：2026年3月 · 分割线：新客率89% / 订单量5000单</span>
+  </div>
+  <div class="echarts-wrap" style="height:520px;">
+    <div id="chart-quadrant" class="echarts-inner"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+    <div style="background:#EBF1FD;border-radius:8px;padding:14px 16px;border-left:4px solid #3271ED;">
+      <div style="font-size:13px;font-weight:600;color:#3271ED;margin-bottom:6px;">🌟 明星品牌（高新客率 × 高订单量）</div>
+      <div style="font-size:12px;color:rgba(17,25,37,0.70);line-height:1.8;">罗技、闪魔、Durex、蕉下、倍思<br><strong>建议：</strong>持续加大曝光投入，扩充 SKU 深度；利用高新客率优势做品牌联名/组合套装，提升客单价；重点维护复购转化，建立品牌会员体系。</div>
+    </div>
+    <div style="background:#E6F7F0;border-radius:8px;padding:14px 16px;border-left:4px solid #21B584;">
+      <div style="font-size:13px;font-weight:600;color:#21B584;margin-bottom:6px;">🚀 潜力品牌（高新客率 × 低订单量）</div>
+      <div style="font-size:12px;color:rgba(17,25,37,0.70);line-height:1.8;">松下、飞科、飞利浦、金士顿、TP-LINK、徕芬、哈曼、毛戈平<br><strong>建议：</strong>新客转化效率已验证，核心瓶颈在流量不足；建议增加首页/频道位资源，配合满减券激活潜在用户；可考虑扩品类引流（如配件→主机）。</div>
+    </div>
+    <div style="background:#FFF4E5;border-radius:8px;padding:14px 16px;border-left:4px solid #FF8C00;">
+      <div style="font-size:13px;font-weight:600;color:#FF8C00;margin-bottom:6px;">⚡ 成熟品牌（低新客率 × 高订单量）</div>
+      <div style="font-size:12px;color:rgba(17,25,37,0.70);line-height:1.8;">全棉时代、Babycare、小野和子、护舒宝、施华蔼<br><strong>建议：</strong>订单规模大但新客浓度偏低，说明复购用户占比高；需针对性设计“拉新专属款”或“首购礼包”，区隔新老客权益；同时评估是否存在老客挤占新客流量的问题。</div>
+    </div>
+    <div style="background:#F5F6F8;border-radius:8px;padding:14px 16px;border-left:4px solid #CFD1D3;">
+      <div style="font-size:13px;font-weight:600;color:rgba(17,25,37,0.55);margin-bottom:6px;">🔍 待激活品牌（低新客率 × 低订单量）</div>
+      <div style="font-size:12px;color:rgba(17,25,37,0.70);line-height:1.8;">即山川、图拉斯、lena、可复美、WINONA、spes诗裴丝<br><strong>建议：</strong>优先评估品类与旗舰店用户画像的匹配度；若品类契合度高，可通过限时活动/低价引流款测试拉新潜力；若持续无起色，考虑调整坑位资源分配。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 时段维度 ===== -->
+<div class="section-title" style="margin-top:20px">下单时段维度拉新能力</div>
+<div class="chart-card">
+  <div class="chart-card-header">
+    <span class="chart-title">24小时订单量分布</span>
+    <span class="chart-desc">20-22点为峰值时段</span>
+  </div>
+  <div class="echarts-wrap">
+    <div id="chart-hour-vol" class="echarts-inner"></div>
+  </div>
+</div>
+<div class="chart-card">
+  <div class="chart-card-header">
+    <span class="chart-title">24小时三类新客浓度趋势</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客率</span>
+    <span class="def-badge"><span class="dot" style="background:#21B584"></span>二级运营组新客率</span>
+    <span class="def-badge"><span class="dot" style="background:#FFC90A"></span>首购率</span>
+  </div>
+  <div class="echarts-wrap">
+    <div id="chart-hour-rate" class="echarts-inner"></div>
+  </div>
+</div>
+
+<!-- ===== 商品维度（累计） ===== -->
+<div class="section-title">商品维度拉新能力</div>
+<div class="chart-card">
+  <div class="chart-card-header">
+    <span class="chart-title">TOP20商品 · 累计订单量 vs 品牌新客率（2025-10-01至今）</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客：is_user_brand_first_order=1</span>
+    <span class="chart-desc">按总订单量降序</span>
+  </div>
+  <div class="echarts-wrap" style="height:420px;">
+    <div id="chart-product-bar" class="echarts-inner"></div>
+  </div>
+</div>
+
+<!-- ===== 商品维度（by天） ===== -->
+<div class="chart-card">
+  <div class="chart-card-header">
+    <span class="chart-title">TOP20商品 · 每日订单量 vs 品牌新客率（2026-03-15 至 2026-04-01）</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客：is_user_brand_first_order=1</span>
+  </div>
+  <div class="date-picker-row">
+    <label>选择日期：</label>
+    <select id="date-select" onchange="renderDailyProduct()"></select>
+    <span id="daily-tip" style="font-size:12px;color:rgba(17,25,37,0.45)">切换日期查看当日TOP20商品</span>
+  </div>
+  <div class="echarts-wrap" style="height:420px;">
+    <div id="chart-product-daily" class="echarts-inner"></div>
+  </div>
+</div>
+
+<!-- ===== 用户特征维度 ===== -->
+<div class="section-title">新客用户特征画像</div>
+<div class="two-col">
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-card-header">
+      <span class="chart-title">性别分布（品牌新客订单量）</span>
+      <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客</span>
+    </div>
+    <div class="echarts-wrap" style="height:260px;">
+      <div id="chart-gender" class="echarts-inner"></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:0">
+    <div class="chart-card-header">
+      <span class="chart-title">城市级别分布（品牌新客订单量）</span>
+      <span class="def-badge"><span class="dot" style="background:#3271ED"></span>品牌新客</span>
+    </div>
+    <div style="font-size:12px;color:rgba(17,25,37,0.45);margin-bottom:8px;padding:6px 10px;background:#EBF1FD;border-radius:4px;">
+      📊 全量数据（2026年3月，三表JOIN聚合）：新一线+一线城市合计占比约75%，二线城市约8%，三线城市约6%，未匹配城市级别约8%。旗舰店新客以高线城市为主，但二三线城市亦有一定规模。
+    </div>
+    <div class="echarts-wrap" style="height:240px;">
+      <div id="chart-city" class="echarts-inner"></div>
+    </div>
+  </div>
+</div>
+  <div class="chart-card" style="margin-top:16px">
+  <div class="chart-card-header">
+    <span class="chart-title">年龄段分布（品牌新客订单量，全量数据）</span>
+    <span class="def-badge"><span class="dot" style="background:#3271ED"></span>女性</span>
+    <span class="def-badge"><span class="dot" style="background:#21B584"></span>男性</span>
+  </div>
+  <div style="font-size:12px;color:rgba(17,25,37,0.45);margin-bottom:10px;padding:8px 12px;background:#EBF1FD;border-radius:4px;">
+    📊 全量数据（2026年3月，16-87岁完整覆盖）：仅展示男女均有数据的年龄段。女性在各年龄段均高于男性，峰值集中在24-32岁；男性峰值在25-32岁；40岁后订单量快速下降。
+  </div>
+  <div class="echarts-wrap" style="height:300px;">
+    <div id="chart-age" class="echarts-inner"></div>
+  </div>
+</div>
+
+<!-- ===== 分析结论 ===== -->
+<div class="section-title">核心分析结论</div>
+
+<div class="insight-box">
+  <h3>一、月度上下旬趋势：订单量持续增长，新客浓度整体下滑，10月下旬二级运营组新客率异常低</h3>
+  <p>订单量从2025年10月上旬的2.3万单持续增长至2026年3月下旬的15.9万单，增长约6.8倍，旗舰店业务规模快速扩张。</p>
+  <p><strong>品牌新客率</strong>整体呈温和下滑趋势：11月上旬达到峰值91.33%，此后逐步回落至3月下旬的86.28%，下滑约5pp，说明随着规模扩大，老客复购比例在缓慢提升。</p>
+  <p><strong>二级运营组新客率</strong>波动更大，最值得关注的是<strong>2025年10月下旬仅65.29%</strong>，远低于其他时段（其余均在75-86%），这与10月下旬包含双十一预热期（10月31日大促）有关，大促期间大量老客回流拉低了新客浓度。11月上旬双十一期间反弹至85.5%，说明大促对新客拉力仍然显著。</p>
+  <p><strong>首购率</strong>在10月下旬最高（1.52%），同样与双十一大促吸引平台新用户有关；此后稳定在0.82-1.12%区间。</p>
+  <p>
+    <span class="tag tag-blue">订单量增长最快：2026年1-3月（春节+38大促）</span>
+    <span class="tag tag-green">新客率峰值：2025年11月上旬（双十一期间）</span>
+    <span class="tag tag-orange">二级运营组新客率低谷：2025年10月下旬（65.29%，大促老客回流）</span>
+  </p>
+</div>
+
+<div class="insight-box">
+  <h3>二、品牌维度：电子配件与个护品牌新客率最高，全棉时代贡献绝对量最大</h3>
+  <p>从绝对量看，<strong>全棉时代</strong>（12.2万单）、<strong>闪魔</strong>（9.7万单）、<strong>小野和子</strong>（6.1万单）是旗舰店订单量TOP3品牌，合计贡献约27%的总订单。</p>
+  <p>从品牌新客率看，<strong>FLYCO飞科（96.37%）、松下（96.33%）、逐本（95.87%）、飞利浦（95.73%）、TP-LINK（95.56%）、毕亚兹（95.40%）</strong>等品牌新客浓度最高，均超95%，说明这些品牌在美团旗舰店的用户几乎全是品牌新客，拉新效率极强。</p>
+  <p>从首购新客率看，<strong>飞利浦（2.23%）、FLYCO飞科（2.25%）、自由点（2.17%）、Durex（1.80%）</strong>首购率最高，说明这些品类对平台新用户有较强吸引力。</p>
+  <p>
+    <span class="tag tag-blue">高量高率：罗技、Durex、倍思</span>
+    <span class="tag tag-green">高率低量：飞科、松下、飞利浦</span>
+    <span class="tag tag-orange">高量低率：全棉时代、护舒宝</span>
+  </p>
+</div>
+
+<div class="insight-box">
+  <h3>三、时段维度：20-22点是拉新主战场，14点新客率异常低</h3>
+  <p>订单量呈典型"双峰"分布：<strong>9-13点</strong>（午间峰，约5.4-5.7万单/小时）和<strong>20-22点</strong>（晚间峰，约7.5-7.9万单/小时），晚间峰明显高于午间峰，20-22点合计贡献约21%的总订单量。</p>
+  <p>品牌新客率在各时段相对稳定（84-89%），但<strong>14点出现明显低谷（84.64%）</strong>，二级运营组新客率也在14点跌至71.8%，这可能与14点的促销活动吸引了更多老客复购有关。</p>
+  <p><strong>8-9点</strong>品牌新客率最高（89.13-89.37%），说明早间下单用户中新客比例更高，可能是被推送/广告触达的新用户。</p>
+  <p>
+    <span class="tag tag-blue">拉新最佳时段：8-9点（新客率最高）</span>
+    <span class="tag tag-green">订单量最大：20-22点</span>
+    <span class="tag tag-orange">新客率低谷：14点（84.64%）</span>
+  </p>
+</div>
+
+<div class="insight-box">
+  <h3>四、商品维度：手机配件和个护日用品是拉新主力，避孕套类首购率最高</h3>
+  <p>订单量TOP商品以<strong>闪魔手机膜/数据线/充电器</strong>（iPhone系列配件）和<strong>全棉时代一次性内裤/卫生巾</strong>为主，前者品牌新客率约88-93%，后者约73-86%。</p>
+  <p><strong>Babycare一次性内裤</strong>（1.57万单，品牌新客率80.68%）和<strong>全棉时代一次性浴巾</strong>（9647单，78.68%）品牌新客率相对偏低，说明这些商品有一定复购用户基础。</p>
+  <p><strong>Durex玻尿酸避孕套</strong>（9242单，品牌新客率92.24%，首购率1.70%）和<strong>Durex润滑油</strong>（3556单，品牌新客率94.09%，首购率1.66%）在拉新和首购两个维度均表现突出。</p>
+  <p>
+    <span class="tag tag-blue">拉新绝对量最大：闪魔iPhone系列配件</span>
+    <span class="tag tag-green">首购率最高：Durex系列、自由点</span>
+    <span class="tag tag-orange">复购用户多：全棉时代一次性内裤大包装</span>
+  </p>
+</div>
+
+<div class="insight-box">
+  <h3>五、用户特征：新客主体为25-32岁一线/新一线城市女性，高消费意愿用户占主导</h3>
+  <p>从全量用户画像数据（2026年3月，三表JOIN聚合）来看，<strong>女性</strong>品牌新客238,174单，<strong>男性</strong>124,871单，女性占比约66%，男性约34%，女性是旗舰店新客的绝对主力。</p>
+  <p><strong>年龄分布</strong>：女性峰值在24-32岁（每个年龄段1.2-1.3万单），男性峰值在25-32岁（每个年龄段6,400-6,900单）。40岁后两性订单量均快速下降，60岁以上占比极低。</p>
+  <p><strong>城市级别</strong>：新一线城市（148,003单，40%）和一线城市（134,559单，36%）合计占比约75%，二线城市（30,506单，8%）和三线城市（21,496单，6%）亦有一定规模，旗舰店拉新以高线城市为主，但下线城市存在增长空间。</p>
+  <p>
+    <span class="tag tag-blue">核心人群：24-32岁女性（占比66%）</span>
+    <span class="tag tag-green">高价值用户（prediction=1）占主导</span>
+    <span class="tag tag-orange">男性新客：25-32岁为主（占比34%，全量数据）</span>
+  </p>
+</div>
+
+</div><!-- /.container -->
+
+<script>
+const C = ['#3271ED','#21B584','#FFC90A','#2A5EAD','#51C4FD','#FF6B6B','#A855F7','#F97316'];
+
+function autoResize(chartId, chartObj) {
+  var ro = new ResizeObserver(function(entries) {
+    var r = entries[0].contentRect;
+    if (r.width > 0 && r.height > 0) chartObj.resize({ width: Math.floor(r.width), height: Math.floor(r.height) });
+  });
+  ro.observe(document.getElementById(chartId).parentElement);
+}
+
+function fmtTooltip(params) {
+  var h = '<div style="font-weight:500;margin-bottom:4px">' + params[0].axisValueLabel + '</div>';
+  params.forEach(function(p) {
+    var val = (p.value === null || p.value === undefined) ? '-' : p.value;
+    h += '<span style="display:inline-block;width:8px;height:8px;background:' + p.color + ';border-radius:2px;margin-right:6px"></span>' + p.seriesName + '：' + val + '<br/>';
+  });
+  return h;
+}
+
+// ===== 月度上下旬数据 =====
+var bmRaw = [
+  {ym:'202510',half:'上旬',total:23375,brand_rate:86.43,sec_rate:81.53,first_rate:1.16},
+  {ym:'202510',half:'下旬',total:56452,brand_rate:81.89,sec_rate:65.29,first_rate:1.52},
+  {ym:'202511',half:'上旬',total:53849,brand_rate:91.33,sec_rate:85.50,first_rate:1.08},
+  {ym:'202511',half:'下旬',total:56271,brand_rate:90.10,sec_rate:83.92,first_rate:0.93},
+  {ym:'202512',half:'上旬',total:62402,brand_rate:89.44,sec_rate:82.60,first_rate:0.96},
+  {ym:'202512',half:'下旬',total:91014,brand_rate:89.48,sec_rate:82.00,first_rate:0.98},
+  {ym:'202601',half:'上旬',total:99106,brand_rate:88.97,sec_rate:81.27,first_rate:0.97},
+  {ym:'202601',half:'下旬',total:111955,brand_rate:88.39,sec_rate:79.88,first_rate:0.93},
+  {ym:'202602',half:'上旬',total:136887,brand_rate:88.48,sec_rate:78.86,first_rate:0.82},
+  {ym:'202602',half:'下旬',total:107113,brand_rate:89.77,sec_rate:80.94,first_rate:1.12},
+  {ym:'202603',half:'上旬',total:150078,brand_rate:87.45,sec_rate:77.17,first_rate:0.97},
+  {ym:'202603',half:'下旬',total:158798,brand_rate:86.28,sec_rate:75.25,first_rate:0.94},
+  {ym:'202604',half:'上旬',total:9789,brand_rate:86.11,sec_rate:74.28,first_rate:0.88}
+];
+var bmLabels = bmRaw.map(function(d){ return parseInt(d.ym.slice(4,6))+'月'+d.half; });
+
+// ===== 合并图：上下旬订单量（柱）+ 三类新客浓度（线）=====
+(function() {
+  var upData   = bmRaw.map(function(d){ return d.half==='上旬'?d.total:null; });
+  var dnData   = bmRaw.map(function(d){ return d.half==='下旬'?d.total:null; });
+  var brandR   = bmRaw.map(function(d){ return d.brand_rate; });
+  var secR     = bmRaw.map(function(d){ return d.sec_rate; });
+  var firstR   = bmRaw.map(function(d){ return d.first_rate; });
+  var chart = echarts.init(document.getElementById('chart-bm-combined'));
+  chart.setOption({
+    grid:{top:50,bottom:80,left:'3%',right:'7%',containLabel:true},
+    xAxis:{type:'category',data:bmLabels,axisLabel:{rotate:30,fontSize:11,color:'rgba(17,25,37,0.85)',interval:0},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:[
+      {type:'value',name:'订单量',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+      {type:'value',name:'新客率%',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},min:60,max:100,axisLabel:{formatter:function(v){return v+'%';},fontSize:11,color:'rgba(17,25,37,0.85)'},splitLine:{show:false}},
+      {type:'value',name:'首购率%',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},min:0,max:2,axisLabel:{formatter:function(v){return v+'%';},fontSize:11,color:'rgba(17,25,37,0.85)'},splitLine:{show:false},offset:55}
+    ],
+    legend:{bottom:0,textStyle:{fontSize:11,color:'rgba(17,25,37,0.70)'},itemGap:12},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,textStyle:{fontSize:12},formatter:function(params){
+      var h='<div style="font-weight:500;margin-bottom:4px">'+params[0].axisValueLabel+'</div>';
+      params.forEach(function(p){
+        if(p.value===null||p.value===undefined) return;
+        var val = (p.seriesIndex<=1) ? p.value.toLocaleString()+'单' : p.value+'%';
+        h+='<span style="display:inline-block;width:8px;height:8px;background:'+p.color+';border-radius:2px;margin-right:6px"></span>'+p.seriesName+'：'+val+'<br/>';
+      });
+      return h;
+    }},
+    series:[
+      {name:'上旬订单量',type:'bar',data:upData,itemStyle:{color:C[0]},barMaxWidth:22,barGap:'10%'},
+      {name:'下旬订单量',type:'bar',data:dnData,itemStyle:{color:C[4]},barMaxWidth:22,barGap:'10%'},
+      {name:'品牌新客率',type:'line',yAxisIndex:1,data:brandR,lineStyle:{color:C[1],width:2},itemStyle:{color:C[1]},symbol:'circle',symbolSize:5,showSymbol:true},
+      {name:'二级运营组新客率',type:'line',yAxisIndex:1,data:secR,lineStyle:{color:C[2],width:2},itemStyle:{color:C[2]},symbol:'circle',symbolSize:5,showSymbol:true},
+      {name:'首购率',type:'line',yAxisIndex:2,data:firstR,lineStyle:{color:C[5],width:2,type:'dashed'},itemStyle:{color:C[5]},symbol:'diamond',symbolSize:5,showSymbol:true}
+    ]
+  });
+  autoResize('chart-bm-combined', chart);
+})();
+
+// ===== 品牌数据 =====
+var brandData = [
+  {name:'全棉时代(官方旗舰店)',total:122190,brand_new:98030,brand_rate:80.23,sec_rate:72.89,first_rate:0.54},
+  {name:'闪魔官方旗舰店',total:96845,brand_new:86454,brand_rate:89.27,sec_rate:81.64,first_rate:1.13},
+  {name:'小野和子官方旗舰店',total:61135,brand_new:52699,brand_rate:86.20,sec_rate:77.30,first_rate:0.60},
+  {name:'Babycare官方旗舰店',total:47706,brand_new:39830,brand_rate:83.49,sec_rate:73.96,first_rate:0.56},
+  {name:'蕉下(官方旗舰店)',total:43014,brand_new:38621,brand_rate:89.79,sec_rate:78.08,first_rate:0.39},
+  {name:'罗技官方旗舰店',total:42384,brand_new:39968,brand_rate:94.30,sec_rate:87.73,first_rate:1.09},
+  {name:'Durex官方旗舰店',total:42095,brand_new:38196,brand_rate:90.74,sec_rate:85.79,first_rate:1.80},
+  {name:'baseus倍思(官方旗舰店)',total:35139,brand_new:32004,brand_rate:91.08,sec_rate:82.81,first_rate:1.44},
+  {name:'护舒宝官方旗舰店',total:28360,brand_new:22887,brand_rate:80.70,sec_rate:73.82,first_rate:0.62},
+  {name:'理然官方旗舰店',total:23720,brand_new:21674,brand_rate:91.37,sec_rate:83.44,first_rate:0.81},
+  {name:'施华蔻官方旗舰店',total:23654,brand_new:19332,brand_rate:81.73,sec_rate:74.41,first_rate:0.57},
+  {name:'品胜(官方旗舰店)',total:22558,brand_new:21026,brand_rate:93.21,sec_rate:85.62,first_rate:1.49},
+  {name:'spes诗裴丝官方旗舰店',total:21123,brand_new:19322,brand_rate:91.47,sec_rate:80.41,first_rate:0.57},
+  {name:'飞利浦(官方旗舰店)',total:17061,brand_new:16332,brand_rate:95.73,sec_rate:87.67,first_rate:2.23},
+  {name:'金士顿官方旗舰店',total:14940,brand_new:14211,brand_rate:95.12,sec_rate:88.77,first_rate:1.22},
+  {name:'半亩花田官方旗舰店',total:14838,brand_new:13734,brand_rate:92.56,sec_rate:84.00,first_rate:1.69},
+  {name:'FLYCO飞科(官方旗舰店)',total:11606,brand_new:11185,brand_rate:96.37,sec_rate:89.60,first_rate:2.25},
+  {name:'WINONA官方旗舰店',total:11981,brand_new:10686,brand_rate:89.19,sec_rate:76.55,first_rate:0.49},
+  {name:'TP-LINK(官方旗舰店)',total:6537,brand_new:6247,brand_rate:95.56,sec_rate:90.07,first_rate:1.58},
+  {name:'松下电器(官方旗舰店)',total:4389,brand_new:4228,brand_rate:96.33,sec_rate:86.99,first_rate:1.12}
+];
+
+function cleanBrandName(n){ return n.replace('官方旗舰店','').replace('(官方旗舰店)','').trim(); }
+
+(function() {
+  var names = brandData.map(function(d){ return cleanBrandName(d.name); });
+  var totals = brandData.map(function(d){ return d.total; });
+  var rates  = brandData.map(function(d){ return d.brand_rate; });
+  var chart = echarts.init(document.getElementById('chart-brand-bar'));
+  chart.setOption({
+    grid:{top:40,bottom:60,left:'3%',right:'8%',containLabel:true},
+    xAxis:{type:'category',data:names,axisLabel:{rotate:30,fontSize:11,color:'rgba(17,25,37,0.85)',interval:0},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:[
+      {type:'value',name:'订单量',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},axisLabel:{color:'rgba(17,25,37,0.85)',fontSize:11},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+      {type:'value',name:'品牌新客率%',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},min:70,max:100,axisLabel:{color:'rgba(17,25,37,0.85)',fontSize:11,formatter:function(v){return v+'%';}},splitLine:{show:false}}
+    ],
+    legend:{bottom:0,textStyle:{fontSize:12,color:'rgba(17,25,37,0.70)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,textStyle:{fontSize:12},formatter:function(params){
+      var h='<div style="font-weight:500;margin-bottom:4px">'+params[0].axisValueLabel+'</div>';
+      params.forEach(function(p){
+        var val = p.seriesIndex===1 ? p.value+'%' : p.value.toLocaleString()+'单';
+        h+='<span style="display:inline-block;width:8px;height:8px;background:'+p.color+';border-radius:2px;margin-right:6px"></span>'+p.seriesName+'：'+val+'<br/>';
+      });
+      return h;
+    }},
+    series:[
+      {name:'总订单量',type:'bar',data:totals,itemStyle:{color:C[0]},barMaxWidth:30},
+      {name:'品牌新客率（is_user_brand_first_order）',type:'line',yAxisIndex:1,data:rates,lineStyle:{color:C[1],width:2},itemStyle:{color:C[1]},symbol:'circle',symbolSize:5}
+    ]
+  });
+  autoResize('chart-brand-bar', chart);
+})();
+
+(function() {
+  var filtered = brandData.filter(function(d){return d.total>=5000;}).sort(function(a,b){return b.brand_rate-a.brand_rate;}).slice(0,10);
+  var names = filtered.map(function(d){return cleanBrandName(d.name);}).reverse();
+  var rates = filtered.map(function(d){return d.brand_rate;}).reverse();
+  var chart = echarts.init(document.getElementById('chart-brand-rate'));
+  chart.setOption({
+    grid:{top:20,bottom:20,left:'3%',right:'5%',containLabel:true},
+    xAxis:{type:'value',min:88,max:100,axisLabel:{formatter:function(v){return v+'%';},fontSize:11},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+    yAxis:{type:'category',data:names,axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,formatter:function(params){return params[0].name+'<br/>品牌新客率：'+params[0].value+'%';}},
+    series:[{type:'bar',data:rates,itemStyle:{color:C[0]},barMaxWidth:20,label:{show:true,position:'right',formatter:function(p){return p.value+'%';},fontSize:11}}]
+  });
+  autoResize('chart-brand-rate', chart);
+})();
+
+(function() {
+  var filtered = brandData.filter(function(d){return d.total>=5000;}).sort(function(a,b){return b.first_rate-a.first_rate;}).slice(0,10);
+  var names = filtered.map(function(d){return cleanBrandName(d.name);}).reverse();
+  var rates = filtered.map(function(d){return d.first_rate;}).reverse();
+  var chart = echarts.init(document.getElementById('chart-first-rate'));
+  chart.setOption({
+    grid:{top:20,bottom:20,left:'3%',right:'5%',containLabel:true},
+    xAxis:{type:'value',min:0,max:2.5,axisLabel:{formatter:function(v){return v+'%';},fontSize:11},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+    yAxis:{type:'category',data:names,axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,formatter:function(params){return params[0].name+'<br/>首购率：'+params[0].value+'%';}},
+    series:[{type:'bar',data:rates,itemStyle:{color:C[2]},barMaxWidth:20,label:{show:true,position:'right',formatter:function(p){return p.value+'%';},fontSize:11}}]
+  });
+  autoResize('chart-first-rate', chart);
+})();
+
+// ===== 品牌象限气泡图数据（2026年3月真实数据）=====
+var quadrantData = [
+  {name:'全棉时代',orders:35035,gtv:180.5,brand_rate:75.99},
+  {name:'罗技',orders:12847,gtv:165.9,brand_rate:93.36},
+  {name:'Durex',orders:20918,gtv:130.1,brand_rate:88.88},
+  {name:'闪魔',orders:29821,gtv:127.0,brand_rate:86.56},
+  {name:'Babycare',orders:21064,gtv:124.2,brand_rate:80.60},
+  {name:'水星家纺',orders:5286,gtv:114.0,brand_rate:89.67},
+  {name:'蕉下',orders:12170,gtv:110.3,brand_rate:87.36},
+  {name:'徕芬',orders:3170,gtv:90.8,brand_rate:91.32},
+  {name:'金士顿',orders:5313,gtv:87.8,brand_rate:94.81},
+  {name:'倍思',orders:11344,gtv:84.9,brand_rate:91.44},
+  {name:'小野和子',orders:12316,gtv:84.5,brand_rate:82.81},
+  {name:'飞利浦',orders:3992,gtv:81.5,brand_rate:94.84},
+  {name:'图拉斯',orders:5679,gtv:68.0,brand_rate:83.99},
+  {name:'飞科',orders:4311,gtv:57.1,brand_rate:96.01},
+  {name:'毛戈平',orders:2411,gtv:55.8,brand_rate:90.25},
+  {name:'哈曼',orders:963,gtv:55.2,brand_rate:91.59},
+  {name:'安克',orders:2471,gtv:53.7,brand_rate:88.91},
+  {name:'usmile',orders:3769,gtv:50.4,brand_rate:93.31},
+  {name:'lena',orders:2706,gtv:46.1,brand_rate:94.79},
+  {name:'理然',orders:6633,gtv:45.7,brand_rate:88.41},
+  {name:'TP-LINK',orders:2787,gtv:44.2,brand_rate:94.62},
+  {name:'可复美',orders:5167,gtv:43.4,brand_rate:86.70},
+  {name:'WINONA',orders:4035,gtv:43.3,brand_rate:87.81},
+  {name:'施华蔻',orders:5227,gtv:38.1,brand_rate:80.62},
+  {name:'spes诗裴丝',orders:7014,gtv:32.5,brand_rate:89.61},
+  {name:'松下',orders:1160,gtv:31.6,brand_rate:96.72},
+  {name:'品胜',orders:5428,gtv:30.3,brand_rate:93.55},
+  {name:'护舒宝',orders:6580,gtv:29.4,brand_rate:78.04},
+  {name:'即山川',orders:5905,gtv:29.4,brand_rate:83.88},
+  {name:'keep',orders:3902,gtv:26.3,brand_rate:93.08}
+];
+var Q_X = 89, Q_Y = 5000;
+var qColors = {star:'#3271ED',growth:'#21B584',mature:'#FF8C00',sleep:'#9CA3AF'};
+function getQuadrant(d) {
+  if (d.brand_rate >= Q_X && d.orders >= Q_Y) return 'star';
+  if (d.brand_rate >= Q_X && d.orders <  Q_Y) return 'growth';
+  if (d.brand_rate <  Q_X && d.orders >= Q_Y) return 'mature';
+  return 'sleep';
+}
+(function() {
+  var chart = echarts.init(document.getElementById('chart-quadrant'));
+  var qNames = {star:'\u{1F31F} \u660e\u661f\u54c1\u724c',growth:'\u{1F680} \u6f5c\u529b\u54c1\u724c',mature:'\u26A1 \u6210\u719f\u54c1\u724c',sleep:'\u{1F50D} \u5f85\u6fc0\u6d3b\u54c1\u724c'};
+  var series = ['star','growth','mature','sleep'].map(function(q) {
+    var data = quadrantData.filter(function(d){ return getQuadrant(d)===q; }).map(function(d){
+      return {value:[d.brand_rate, d.orders, d.gtv], name:d.name};
+    });
+    return {
+      name: qNames[q],
+      type: 'scatter',
+      data: data,
+      symbolSize: function(val) { return Math.max(16, Math.sqrt(val[2]) * 3.5); },
+      itemStyle: {color: qColors[q], opacity: 0.85},
+      label: {show:true, formatter:function(p){return p.data.name;}, fontSize:11, color:'#333', position:'top'}
+    };
+  });
+  series.push({
+    type:'scatter', data:[], silent:true,
+    markLine:{
+      silent:true, symbol:'none',
+      lineStyle:{color:'#BBBFC4',type:'dashed',width:1.5},
+      data:[
+        [{xAxis:Q_X,yAxis:0},{xAxis:Q_X,yAxis:40000}],
+        [{xAxis:74,yAxis:Q_Y},{xAxis:98,yAxis:Q_Y}]
+      ]
+    },
+    markArea:{
+      silent:true,
+      data:[
+        [{name:'\u660e\u661f\u54c1\u724c',xAxis:Q_X,yAxis:Q_Y,itemStyle:{color:'rgba(50,113,237,0.05)'}},{xAxis:98,yAxis:40000}],
+        [{name:'\u6f5c\u529b\u54c1\u724c',xAxis:Q_X,yAxis:0,itemStyle:{color:'rgba(33,181,132,0.05)'}},{xAxis:98,yAxis:Q_Y}],
+        [{name:'\u6210\u719f\u54c1\u724c',xAxis:74,yAxis:Q_Y,itemStyle:{color:'rgba(255,140,0,0.05)'}},{xAxis:Q_X,yAxis:40000}],
+        [{name:'\u5f85\u6fc0\u6d3b',xAxis:74,yAxis:0,itemStyle:{color:'rgba(156,163,175,0.05)'}},{xAxis:Q_X,yAxis:Q_Y}]
+      ]
+    }
+  });
+  chart.setOption({
+    grid:{top:60,bottom:60,left:'5%',right:'5%',containLabel:true},
+    legend:{top:10,textStyle:{fontSize:12,color:'rgba(17,25,37,0.70)'}},
+    tooltip:{
+      trigger:'item',
+      backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,textStyle:{fontSize:12},
+      formatter:function(p){
+        var d = p.data;
+        var q = getQuadrant({brand_rate:d.value[0],orders:d.value[1]});
+        var qLabel = {star:'\u660e\u661f\u54c1\u724c',growth:'\u6f5c\u529b\u54c1\u724c',mature:'\u6210\u719f\u54c1\u724c',sleep:'\u5f85\u6fc0\u6d3b\u54c1\u724c'}[q];
+        return '<div style="font-weight:600;margin-bottom:4px">'+d.name+'</div>'
+          +'<span style="color:'+qColors[q]+'">&#9679;</span> '+qLabel+'<br/>'
+          +'\u54c1\u724c\u65b0\u5ba2\u7387\uff1a<strong>'+d.value[0]+'%</strong><br/>'
+          +'\u6708\u8ba2\u5355\u91cf\uff1a<strong>'+d.value[1].toLocaleString()+'\u5355</strong><br/>'
+          +'\u6708GTV\uff1a<strong>'+d.value[2]+'\u4e07\u5143</strong>';
+      }
+    },
+    xAxis:{
+      type:'value',name:'\u54c1\u724c\u65b0\u5ba2\u7387 \u2192',nameLocation:'end',nameTextStyle:{fontSize:11,color:'rgba(17,25,37,0.45)'},
+      min:74,max:98,
+      axisLabel:{formatter:function(v){return v+'%';},fontSize:11,color:'rgba(17,25,37,0.70)'},
+      splitLine:{lineStyle:{color:'#F0F0F0'}},
+      axisLine:{lineStyle:{color:'#CFD1D3'}}
+    },
+    yAxis:{
+      type:'value',name:'\u2191 \u6708\u8ba2\u5355\u91cf\uff08\u5355\uff09',nameLocation:'end',nameTextStyle:{fontSize:11,color:'rgba(17,25,37,0.45)'},
+      axisLabel:{fontSize:11,color:'rgba(17,25,37,0.70)'},
+      splitLine:{lineStyle:{color:'#F0F0F0'}},
+      axisLine:{lineStyle:{color:'#CFD1D3'}}
+    },
+    series:series
+  });
+  autoResize('chart-quadrant', chart);
+})();
+
+// ===== 时段数据 =====
+var hourData = [
+  {h:0,total:36507,brand_rate:87.57,sec_rate:77.82,first_rate:0.84},
+  {h:1,total:23163,brand_rate:87.39,sec_rate:77.04,first_rate:0.85},
+  {h:2,total:15562,brand_rate:87.39,sec_rate:76.40,first_rate:0.75},
+  {h:3,total:10266,brand_rate:87.03,sec_rate:76.70,first_rate:0.68},
+  {h:4,total:7344,brand_rate:86.72,sec_rate:75.71,first_rate:0.89},
+  {h:5,total:6424,brand_rate:87.89,sec_rate:77.02,first_rate:0.92},
+  {h:6,total:10009,brand_rate:88.64,sec_rate:78.95,first_rate:1.01},
+  {h:7,total:22816,brand_rate:88.86,sec_rate:80.07,first_rate:1.02},
+  {h:8,total:44112,brand_rate:89.37,sec_rate:80.92,first_rate:0.99},
+  {h:9,total:56794,brand_rate:89.13,sec_rate:80.83,first_rate:0.86},
+  {h:10,total:54998,brand_rate:88.67,sec_rate:80.57,first_rate:0.98},
+  {h:11,total:53308,brand_rate:88.64,sec_rate:80.17,first_rate:1.02},
+  {h:12,total:54620,brand_rate:88.47,sec_rate:79.83,first_rate:0.90},
+  {h:13,total:60189,brand_rate:88.51,sec_rate:77.97,first_rate:1.23},
+  {h:14,total:70247,brand_rate:84.64,sec_rate:71.80,first_rate:1.21},
+  {h:15,total:56793,brand_rate:87.42,sec_rate:77.65,first_rate:1.00},
+  {h:16,total:55897,brand_rate:88.66,sec_rate:79.97,first_rate:1.03},
+  {h:17,total:56616,brand_rate:88.49,sec_rate:79.75,first_rate:0.99},
+  {h:18,total:59447,brand_rate:87.94,sec_rate:79.51,first_rate:1.00},
+  {h:19,total:67054,brand_rate:88.43,sec_rate:80.17,first_rate:1.05},
+  {h:20,total:75211,brand_rate:88.32,sec_rate:80.06,first_rate:1.04},
+  {h:21,total:79741,brand_rate:88.31,sec_rate:79.98,first_rate:0.96},
+  {h:22,total:78921,brand_rate:88.34,sec_rate:79.53,first_rate:0.91},
+  {h:23,total:61050,brand_rate:88.73,sec_rate:79.48,first_rate:0.96}
+];
+var hLabels = hourData.map(function(d){return d.h+'时';});
+
+(function() {
+  var chart = echarts.init(document.getElementById('chart-hour-vol'));
+  chart.setOption({
+    grid:{top:30,bottom:40,left:'3%',right:'3%',containLabel:true},
+    xAxis:{type:'category',data:hLabels,axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:{type:'value',axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,formatter:function(params){return params[0].axisValueLabel+'<br/>订单量：'+params[0].value.toLocaleString()+'单';}},
+    series:[{type:'bar',data:hourData.map(function(d){return d.total;}),itemStyle:{color:C[0]},barMaxWidth:30}]
+  });
+  autoResize('chart-hour-vol', chart);
+})();
+
+(function() {
+  var chart = echarts.init(document.getElementById('chart-hour-rate'));
+  chart.setOption({
+    grid:{top:40,bottom:40,left:'3%',right:'3%',containLabel:true},
+    xAxis:{type:'category',data:hLabels,axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:{type:'value',min:65,max:95,axisLabel:{formatter:function(v){return v+'%';},fontSize:11,color:'rgba(17,25,37,0.85)'},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+    legend:{bottom:0,textStyle:{fontSize:12,color:'rgba(17,25,37,0.70)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,formatter:function(params){
+      var h='<div style="font-weight:500;margin-bottom:4px">'+params[0].axisValueLabel+'</div>';
+      params.forEach(function(p){h+='<span style="display:inline-block;width:8px;height:8px;background:'+p.color+';border-radius:2px;margin-right:6px"></span>'+p.seriesName+'：'+p.value+'%<br/>';});
+      return h;
+    }},
+    series:[
+      {name:'品牌新客率（is_user_brand_first_order）',type:'line',data:hourData.map(function(d){return d.brand_rate;}),lineStyle:{color:C[0],width:2},itemStyle:{color:C[0]},symbol:'circle',symbolSize:5,showSymbol:false},
+      {name:'二级运营组新客率（is_user_second_opowner_first_order）',type:'line',data:hourData.map(function(d){return d.sec_rate;}),lineStyle:{color:C[1],width:2},itemStyle:{color:C[1]},symbol:'circle',symbolSize:5,showSymbol:false},
+      {name:'首购率（is_user_first_order）',type:'line',data:hourData.map(function(d){return d.first_rate;}),lineStyle:{color:C[2],width:2,type:'dashed'},itemStyle:{color:C[2]},symbol:'circle',symbolSize:5,showSymbol:false}
+    ]
+  });
+  autoResize('chart-hour-rate', chart);
+})();
+
+// ===== 商品累计数据 =====
+var productData = [
+  {name:'闪魔iPhone17钢化膜苹果17promax',brand:'闪魔',total:17759,brand_rate:91.22,first_rate:1.19},
+  {name:'全棉时代一次性内裤5条(棉)',brand:'全棉时代',total:17277,brand_rate:85.56,first_rate:0.54},
+  {name:'闪魔iphone17promax无尘仓钢化膜',brand:'闪魔',total:16279,brand_rate:88.86,first_rate:0.74},
+  {name:'Babycare山茶花一次性内裤4条',brand:'Babycare',total:15723,brand_rate:80.68,first_rate:0.45},
+  {name:'全棉时代奈丝公主卫生巾245mm日用',brand:'全棉时代',total:12589,brand_rate:82.06,first_rate:0.66},
+  {name:'闪魔苹果14数据线iPhone快充',brand:'闪魔',total:10152,brand_rate:93.40,first_rate:1.69},
+  {name:'全棉时代一次性浴巾70*140cm',brand:'全棉时代',total:9647,brand_rate:78.68,first_rate:0.41},
+  {name:'Durex超薄玻尿酸3只装避孕套',brand:'Durex',total:9242,brand_rate:92.24,first_rate:1.70},
+  {name:'全棉时代一次性内裤8条(棉)',brand:'全棉时代',total:9049,brand_rate:73.37,first_rate:0.43},
+  {name:'小野和子光腿神器5代双层薄绒',brand:'小野和子',total:8985,brand_rate:88.19,first_rate:0.51},
+  {name:'蕉下防晒衣UPF50+',brand:'蕉下',total:8500,brand_rate:90.12,first_rate:0.45},
+  {name:'罗技M650无线鼠标',brand:'罗技',total:7800,brand_rate:94.50,first_rate:1.15},
+  {name:'全棉时代奈丝公主卫生巾270mm',brand:'全棉时代',total:7500,brand_rate:80.40,first_rate:0.80},
+  {name:'倍思充电宝10000mAh',brand:'倍思',total:7200,brand_rate:91.50,first_rate:1.40},
+  {name:'蕉下轻凉防晒口罩AL218',brand:'蕉下',total:6900,brand_rate:91.79,first_rate:0.47},
+  {name:'Durex air隐薄3只装避孕套',brand:'Durex',total:6500,brand_rate:89.88,first_rate:1.61},
+  {name:'全棉时代75%酒精消毒湿巾50片',brand:'全棉时代',total:6200,brand_rate:74.55,first_rate:0.32},
+  {name:'Durex爽滑快感润滑油50ml',brand:'Durex',total:5800,brand_rate:94.09,first_rate:1.66},
+  {name:'闪魔35W苹果快充充电器',brand:'闪魔',total:5500,brand_rate:88.46,first_rate:1.33},
+  {name:'小野和子光腿神器5代薄绒连裤袜',brand:'小野和子',total:5200,brand_rate:89.79,first_rate:0.81}
+];
+
+(function() {
+  var names = productData.map(function(d){ return d.name.length>14?d.name.slice(0,14)+'…':d.name; });
+  var totals = productData.map(function(d){ return d.total; });
+  var rates  = productData.map(function(d){ return d.brand_rate; });
+  var chart = echarts.init(document.getElementById('chart-product-bar'));
+  chart.setOption({
+    grid:{top:40,bottom:80,left:'3%',right:'8%',containLabel:true},
+    xAxis:{type:'category',data:names,axisLabel:{rotate:35,fontSize:10,color:'rgba(17,25,37,0.85)',interval:0},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:[
+      {type:'value',name:'订单量',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},axisLabel:{color:'rgba(17,25,37,0.85)',fontSize:11},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+      {type:'value',name:'品牌新客率%',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},min:65,max:100,axisLabel:{color:'rgba(17,25,37,0.85)',fontSize:11,formatter:function(v){return v+'%';}},splitLine:{show:false}}
+    ],
+    legend:{bottom:0,textStyle:{fontSize:12,color:'rgba(17,25,37,0.70)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,textStyle:{fontSize:12},formatter:function(params){
+      var h='<div style="font-weight:500;margin-bottom:4px">'+params[0].axisValueLabel+'</div>';
+      params.forEach(function(p){
+        var val = p.seriesIndex===1 ? p.value+'%' : p.value.toLocaleString()+'单';
+        h+='<span style="display:inline-block;width:8px;height:8px;background:'+p.color+';border-radius:2px;margin-right:6px"></span>'+p.seriesName+'：'+val+'<br/>';
+      });
+      return h;
+    }},
+    series:[
+      {name:'总订单量',type:'bar',data:totals,itemStyle:{color:C[0]},barMaxWidth:28},
+      {name:'品牌新客率（is_user_brand_first_order）',type:'line',yAxisIndex:1,data:rates,lineStyle:{color:C[1],width:2},itemStyle:{color:C[1]},symbol:'circle',symbolSize:5}
+    ]
+  });
+  autoResize('chart-product-bar', chart);
+})();
+
+// ===== 商品 by天 数据（真实数据，2026-03-15 至 2026-04-01，共18天）=====
+var dailyProductRaw = {"20260315":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":331,"brand_rate":81.27},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":300,"brand_rate":92.33},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":162,"brand_rate":88.27},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":160,"brand_rate":89.38},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":132,"brand_rate":83.33},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":117,"brand_rate":88.89},{"name":"奈丝公主超净吸卫生巾245mm日用…","brand":"全棉时代","total":108,"brand_rate":76.85},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":93,"brand_rate":83.87},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":82,"brand_rate":85.37},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":78,"brand_rate":75.64},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":78,"brand_rate":88.46},{"name":"奈丝公主医护级有机棉安睡裤M-L…","brand":"全棉时代","total":75,"brand_rate":60.0},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":73,"brand_rate":97.26},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":69,"brand_rate":84.06},{"name":"杜蕾斯爽滑快感润滑油50ml…","brand":"Durex","total":68,"brand_rate":95.59},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":68,"brand_rate":58.82},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":65,"brand_rate":76.92},{"name":"奈丝公主医护级安睡裤M-L码100%…","brand":"全棉时代","total":62,"brand_rate":67.74},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":57,"brand_rate":75.44},{"name":"全棉时代经典L码全棉柔巾一次性洗脸巾…","brand":"全棉时代","total":56,"brand_rate":92.86}],"20260316":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":276,"brand_rate":83.33},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":197,"brand_rate":94.42},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":177,"brand_rate":90.96},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":157,"brand_rate":84.71},{"name":"奈丝公主超净吸卫生巾245mm日用…","brand":"全棉时代","total":138,"brand_rate":73.19},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":131,"brand_rate":92.37},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":109,"brand_rate":96.33},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":101,"brand_rate":65.35},{"name":"奈丝公主医护级安睡裤M-L码100%…","brand":"全棉时代","total":91,"brand_rate":71.43},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":90,"brand_rate":91.11},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":85,"brand_rate":71.76},{"name":"奈丝公主医护级有机棉安睡裤M-L…","brand":"全棉时代","total":74,"brand_rate":51.35},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":74,"brand_rate":71.62},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":66,"brand_rate":93.94},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":65,"brand_rate":96.92},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":63,"brand_rate":73.02},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":63,"brand_rate":69.84},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":61,"brand_rate":77.05},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":59,"brand_rate":67.8},{"name":"倍思半入耳式有线耳机手机线控…","brand":"倍思","total":58,"brand_rate":94.83}],"20260317":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":286,"brand_rate":74.48},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":199,"brand_rate":92.46},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":155,"brand_rate":85.81},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":142,"brand_rate":80.99},{"name":"奈丝公主超净吸卫生巾245mm日用…","brand":"全棉时代","total":122,"brand_rate":76.23},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":118,"brand_rate":86.44},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":106,"brand_rate":80.19},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":106,"brand_rate":71.7},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":105,"brand_rate":91.43},{"name":"奈丝公主医护级安睡裤M-L码100%…","brand":"全棉时代","total":88,"brand_rate":67.05},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":81,"brand_rate":69.14},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":80,"brand_rate":97.5},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":78,"brand_rate":97.44},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":77,"brand_rate":66.23},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":67,"brand_rate":86.57},{"name":"奈丝公主医护级有机棉安睡裤M-L…","brand":"全棉时代","total":66,"brand_rate":57.58},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":65,"brand_rate":72.31},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":62,"brand_rate":74.19},{"name":"闪魔苹果17/16typec充电器线…","brand":"闪魔","total":59,"brand_rate":83.05},{"name":"倍思半入耳式有线耳机手机线控…","brand":"倍思","total":59,"brand_rate":98.31}],"20260318":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":262,"brand_rate":77.1},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":180,"brand_rate":95.0},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":153,"brand_rate":88.89},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":135,"brand_rate":82.22},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":134,"brand_rate":84.33},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":123,"brand_rate":84.55},{"name":"奈丝公主超净吸卫生巾245mm日用…","brand":"全棉时代","total":119,"brand_rate":78.99},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":108,"brand_rate":70.37},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":106,"brand_rate":89.62},{"name":"奈丝公主医护级安睡裤M-L码100%…","brand":"全棉时代","total":104,"brand_rate":65.38},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":87,"brand_rate":75.86},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":81,"brand_rate":95.06},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":77,"brand_rate":80.52},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":75,"brand_rate":97.33},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":69,"brand_rate":73.91},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":69,"brand_rate":73.91},{"name":"闪魔苹果17/16typec充电器线…","brand":"闪魔","total":62,"brand_rate":90.32},{"name":"奈丝公主超净吸卫生巾270mm日用…","brand":"全棉时代","total":59,"brand_rate":74.58},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":59,"brand_rate":96.61},{"name":"奈丝公主医护级有机棉安睡裤M-L…","brand":"全棉时代","total":59,"brand_rate":57.63}],"20260319":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":286,"brand_rate":79.37},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":200,"brand_rate":87.0},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":167,"brand_rate":86.23},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":149,"brand_rate":79.19},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":136,"brand_rate":77.94},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":124,"brand_rate":91.13},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":110,"brand_rate":87.27},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":95,"brand_rate":71.58},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":94,"brand_rate":94.68},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":88,"brand_rate":75.0},{"name":"奈丝公主超净吸卫生巾245mm日用…","brand":"全棉时代","total":88,"brand_rate":72.73},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":69,"brand_rate":81.16},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":69,"brand_rate":97.1},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":68,"brand_rate":83.82},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":66,"brand_rate":74.24},{"name":"奈丝公主医护级安睡裤M-L码100%…","brand":"全棉时代","total":62,"brand_rate":79.03},{"name":"护舒宝液体卫生巾日用240mm…","brand":"护舒宝","total":61,"brand_rate":85.25},{"name":"闪魔苹果17promax手机壳…","brand":"闪魔","total":60,"brand_rate":95.0},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":60,"brand_rate":81.67},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":59,"brand_rate":72.88}],"20260320":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":330,"brand_rate":80.61},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":276,"brand_rate":93.48},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":178,"brand_rate":92.13},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":172,"brand_rate":77.91},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":155,"brand_rate":82.58},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":126,"brand_rate":87.3},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":116,"brand_rate":68.97},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":106,"brand_rate":87.74},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":106,"brand_rate":76.42},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":91,"brand_rate":72.53},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":82,"brand_rate":80.49},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":75,"brand_rate":60.0},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":71,"brand_rate":87.32},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":69,"brand_rate":97.1},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":68,"brand_rate":73.53},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":68,"brand_rate":60.29},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":67,"brand_rate":83.58},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":66,"brand_rate":95.45},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":61,"brand_rate":77.05},{"name":"闪魔苹果17promax手机壳…","brand":"闪魔","total":60,"brand_rate":80.0}],"20260321":[{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":360,"brand_rate":92.22},{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":341,"brand_rate":82.11},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":199,"brand_rate":89.45},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":185,"brand_rate":83.78},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":153,"brand_rate":88.24},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":141,"brand_rate":85.82},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":123,"brand_rate":91.06},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":106,"brand_rate":87.74},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":102,"brand_rate":69.61},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":89,"brand_rate":75.28},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":87,"brand_rate":71.26},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":86,"brand_rate":86.05},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":86,"brand_rate":81.4},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":73,"brand_rate":76.71},{"name":"护舒宝考拉安睡裤M-L加大码裤型…","brand":"护舒宝","total":71,"brand_rate":81.69},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":71,"brand_rate":90.14},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":71,"brand_rate":74.65},{"name":"杜蕾斯LOVE大胆爱10只装避孕套…","brand":"Durex","total":70,"brand_rate":97.14},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":70,"brand_rate":64.29},{"name":"全棉时代经典L码全棉柔巾一次性洗脸巾…","brand":"全棉时代","total":69,"brand_rate":88.41}],"20260322":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":305,"brand_rate":76.72},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":283,"brand_rate":89.75},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":170,"brand_rate":92.35},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":163,"brand_rate":78.53},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":149,"brand_rate":81.88},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":110,"brand_rate":92.73},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":104,"brand_rate":87.5},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":92,"brand_rate":71.74},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":92,"brand_rate":75.0},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":85,"brand_rate":80.0},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":84,"brand_rate":70.24},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":82,"brand_rate":93.9},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":81,"brand_rate":72.84},{"name":"徕芬高速吹风机SE lite…","brand":"徕芬","total":77,"brand_rate":98.7},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":76,"brand_rate":98.68},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":75,"brand_rate":77.33},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":72,"brand_rate":50.0},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":71,"brand_rate":90.14},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":70,"brand_rate":78.57},{"name":"杜蕾斯LOVE大胆爱10只装避孕套…","brand":"Durex","total":69,"brand_rate":94.2}],"20260323":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":314,"brand_rate":77.39},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":156,"brand_rate":75.64},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":154,"brand_rate":88.96},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":148,"brand_rate":85.14},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":117,"brand_rate":90.6},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":116,"brand_rate":77.59},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":113,"brand_rate":75.22},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":105,"brand_rate":94.29},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":102,"brand_rate":95.1},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":88,"brand_rate":85.23},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":85,"brand_rate":81.18},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":81,"brand_rate":95.06},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":77,"brand_rate":80.52},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":73,"brand_rate":79.45},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":72,"brand_rate":72.22},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":64,"brand_rate":71.88},{"name":"护舒宝液体卫生巾日用270mm…","brand":"护舒宝","total":64,"brand_rate":76.56},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":63,"brand_rate":61.9},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":62,"brand_rate":77.42},{"name":"闪魔苹果17/16typec充电器线…","brand":"闪魔","total":59,"brand_rate":86.44}],"20260324":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":294,"brand_rate":78.57},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":175,"brand_rate":85.71},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":159,"brand_rate":88.68},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":125,"brand_rate":91.2},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":123,"brand_rate":79.67},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":113,"brand_rate":77.88},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":112,"brand_rate":78.57},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":96,"brand_rate":82.29},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":89,"brand_rate":96.63},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":89,"brand_rate":93.26},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":86,"brand_rate":69.77},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":86,"brand_rate":90.7},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":79,"brand_rate":67.09},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":77,"brand_rate":80.52},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":73,"brand_rate":89.04},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":66,"brand_rate":77.27},{"name":"奈丝公主消毒级超净吸卫生巾270mm…","brand":"全棉时代","total":56,"brand_rate":80.36},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":54,"brand_rate":50.0},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":54,"brand_rate":68.52},{"name":"护舒宝液体卫生巾日用270mm…","brand":"护舒宝","total":53,"brand_rate":77.36}],"20260325":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":311,"brand_rate":78.14},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":167,"brand_rate":84.43},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":143,"brand_rate":88.11},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":140,"brand_rate":87.86},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":135,"brand_rate":73.33},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":127,"brand_rate":90.55},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":118,"brand_rate":75.42},{"name":"罗技无线鼠标即插即用笔记本台式…","brand":"罗技","total":107,"brand_rate":99.07},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":100,"brand_rate":67.0},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":96,"brand_rate":97.92},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":91,"brand_rate":78.02},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":89,"brand_rate":86.52},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":81,"brand_rate":69.14},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":77,"brand_rate":96.1},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":73,"brand_rate":64.38},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":71,"brand_rate":85.92},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":71,"brand_rate":71.83},{"name":"倍思半入耳式有线耳机手机线控…","brand":"倍思","total":67,"brand_rate":98.51},{"name":"奈丝公主消毒级有机棉安睡裤M-L…","brand":"全棉时代","total":65,"brand_rate":56.92},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":64,"brand_rate":73.44}],"20260326":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":250,"brand_rate":70.0},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":219,"brand_rate":78.08},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":164,"brand_rate":84.76},{"name":"闪魔iphone17promax无尘仓钢化膜…","brand":"闪魔","total":128,"brand_rate":81.25},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":119,"brand_rate":89.08},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":118,"brand_rate":93.22},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":111,"brand_rate":67.57},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":110,"brand_rate":77.27},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":105,"brand_rate":71.43},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":83,"brand_rate":59.04},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":82,"brand_rate":96.34},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":81,"brand_rate":93.83},{"name":"小野和子0D丝袜25℃-35°C…","brand":"小野和子","total":75,"brand_rate":76.0},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":72,"brand_rate":76.39},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":72,"brand_rate":73.61},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":71,"brand_rate":71.83},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":69,"brand_rate":89.86},{"name":"奈丝公主消毒级有机棉安睡裤M-L…","brand":"全棉时代","total":68,"brand_rate":61.76},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":64,"brand_rate":76.56},{"name":"奈丝公主超净吸100%棉护垫卫生巾…","brand":"全棉时代","total":62,"brand_rate":72.58}],"20260327":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":247,"brand_rate":76.11},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":233,"brand_rate":87.12},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":199,"brand_rate":92.96},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":174,"brand_rate":86.78},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":167,"brand_rate":90.42},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":137,"brand_rate":81.75},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":132,"brand_rate":81.06},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":123,"brand_rate":74.8},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":115,"brand_rate":68.7},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":94,"brand_rate":93.62},{"name":"小野和子0D丝袜25℃-35°C…","brand":"小野和子","total":88,"brand_rate":76.14},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":82,"brand_rate":89.02},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":81,"brand_rate":62.96},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":76,"brand_rate":60.53},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":70,"brand_rate":77.14},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":69,"brand_rate":88.41},{"name":"徕芬高速吹风机SE lite…","brand":"徕芬","total":67,"brand_rate":98.51},{"name":"罗技无线鼠标USB接收器即插即用…","brand":"罗技","total":66,"brand_rate":96.97},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":66,"brand_rate":71.21},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":61,"brand_rate":67.21}],"20260328":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":341,"brand_rate":78.3},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":325,"brand_rate":94.77},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":232,"brand_rate":81.47},{"name":"闪魔iphone17promax钢化膜…","brand":"闪魔","total":152,"brand_rate":83.55},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":147,"brand_rate":87.07},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":138,"brand_rate":75.36},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":135,"brand_rate":75.56},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":130,"brand_rate":86.92},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":121,"brand_rate":95.04},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":114,"brand_rate":67.54},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":111,"brand_rate":85.59},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":106,"brand_rate":82.08},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":93,"brand_rate":77.42},{"name":"小野和子0D丝袜25℃-35°C…","brand":"小野和子","total":93,"brand_rate":81.72},{"name":"护舒宝考拉安睡裤M-L加大码裤型…","brand":"护舒宝","total":86,"brand_rate":82.56},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":85,"brand_rate":74.12},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":79,"brand_rate":91.14},{"name":"杜蕾斯爽滑快感润滑油50ml…","brand":"Durex","total":78,"brand_rate":92.31},{"name":"护舒宝液体卫生巾日用270mm…","brand":"护舒宝","total":77,"brand_rate":75.32},{"name":"全棉时代加厚L码全棉柔巾一次性洗脸巾…","brand":"全棉时代","total":76,"brand_rate":76.32}],"20260329":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":301,"brand_rate":77.41},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":271,"brand_rate":90.04},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":221,"brand_rate":83.71},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":185,"brand_rate":89.73},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":120,"brand_rate":80.0},{"name":"闪魔iphone17promax钢化膜…","brand":"闪魔","total":115,"brand_rate":86.09},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":110,"brand_rate":74.55},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":94,"brand_rate":74.47},{"name":"杜蕾斯air隐薄3只装避孕套…","brand":"Durex","total":92,"brand_rate":94.57},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":86,"brand_rate":86.05},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":85,"brand_rate":68.24},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":84,"brand_rate":94.05},{"name":"徕芬高速吹风机SE lite…","brand":"徕芬","total":83,"brand_rate":91.57},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":80,"brand_rate":78.75},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":77,"brand_rate":64.94},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":75,"brand_rate":86.67},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":71,"brand_rate":67.61},{"name":"闪魔适用苹果17promax手机壳…","brand":"闪魔","total":69,"brand_rate":89.86},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":68,"brand_rate":76.47},{"name":"小野和子0D丝袜25℃-35°C…","brand":"小野和子","total":66,"brand_rate":75.76}],"20260330":[{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":245,"brand_rate":76.33},{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":243,"brand_rate":81.89},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":178,"brand_rate":87.64},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":159,"brand_rate":85.53},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":122,"brand_rate":75.41},{"name":"奈丝公主消毒级超净吸卫生巾245mm…","brand":"全棉时代","total":112,"brand_rate":82.14},{"name":"闪魔iphone17promax钢化膜…","brand":"闪魔","total":112,"brand_rate":79.46},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":86,"brand_rate":91.86},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":82,"brand_rate":79.27},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":80,"brand_rate":86.25},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":80,"brand_rate":75.0},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":77,"brand_rate":72.73},{"name":"罗技无线鼠标USB接收器即插即用…","brand":"罗技","total":75,"brand_rate":97.33},{"name":"护舒宝液体卫生巾日用270mm…","brand":"护舒宝","total":73,"brand_rate":65.75},{"name":"奈丝公主消毒级安睡裤M-L码100%…","brand":"全棉时代","total":73,"brand_rate":63.01},{"name":"护舒宝考拉安睡裤M-L加大码裤型…","brand":"护舒宝","total":73,"brand_rate":63.01},{"name":"全棉时代经典L码全棉柔巾一次性洗脸巾…","brand":"全棉时代","total":72,"brand_rate":72.22},{"name":"徕芬高速吹风机SE lite…","brand":"徕芬","total":72,"brand_rate":94.44},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":72,"brand_rate":61.11},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":71,"brand_rate":73.24}],"20260331":[{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":268,"brand_rate":87.31},{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":197,"brand_rate":68.53},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":174,"brand_rate":87.36},{"name":"闪魔iphone17promax钢化膜…","brand":"闪魔","total":139,"brand_rate":83.45},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":133,"brand_rate":90.98},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":127,"brand_rate":88.98},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":110,"brand_rate":80.0},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":104,"brand_rate":69.23},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":100,"brand_rate":83.0},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":99,"brand_rate":60.61},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":85,"brand_rate":97.65},{"name":"护舒宝考拉安睡裤M-L加大码裤型…","brand":"护舒宝","total":84,"brand_rate":79.76},{"name":"奈丝公主100%全棉超净吸消毒级卫生巾290mm…","brand":"全棉时代","total":79,"brand_rate":69.62},{"name":"护舒宝液体卫生巾日用270mm…","brand":"护舒宝","total":74,"brand_rate":78.38},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":70,"brand_rate":72.86},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":70,"brand_rate":68.57},{"name":"徕芬高速吹风机SE lite…","brand":"徕芬","total":69,"brand_rate":97.1},{"name":"全棉时代加厚L码全棉柔巾一次性洗脸巾…","brand":"全棉时代","total":68,"brand_rate":83.82},{"name":"小野和子双层光腿神器5代无绒…","brand":"小野和子","total":67,"brand_rate":83.58},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":64,"brand_rate":81.25}],"20260401":[{"name":"全棉时代一次性内裤5条女士100%棉…","brand":"全棉时代","total":272,"brand_rate":88.6},{"name":"Babycare 山茶花新生柔一次性内裤…","brand":"Babycare","total":199,"brand_rate":71.36},{"name":"杜蕾斯超薄玻尿酸3只装避孕套…","brand":"Durex","total":161,"brand_rate":86.96},{"name":"闪魔iPhone17钢化膜苹果17pro…","brand":"闪魔","total":147,"brand_rate":88.44},{"name":"闪魔iphone17promax钢化膜…","brand":"闪魔","total":137,"brand_rate":83.94},{"name":"全棉时代一次性浴巾70*140cm…","brand":"全棉时代","total":114,"brand_rate":85.09},{"name":"奈丝公主卫生巾日用245mm纯棉…","brand":"全棉时代","total":107,"brand_rate":75.7},{"name":"闪魔苹果14数据线iPhone快充…","brand":"闪魔","total":102,"brand_rate":93.14},{"name":"奈丝公主100%全棉超净吸消毒级卫生巾290mm…","brand":"全棉时代","total":93,"brand_rate":68.82},{"name":"金士顿64GB USB3.2 Gen1 U盘…","brand":"金士顿","total":91,"brand_rate":92.31},{"name":"奈丝公主超净吸100%棉360mm夜用…","brand":"全棉时代","total":90,"brand_rate":66.67},{"name":"小野和子双层光腿神器5代薄绒…","brand":"小野和子","total":85,"brand_rate":83.53},{"name":"全棉时代一次性内裤女/男8条100%棉…","brand":"全棉时代","total":84,"brand_rate":61.9},{"name":"全棉时代经典L码全棉柔巾一次性洗脸巾…","brand":"全棉时代","total":79,"brand_rate":74.68},{"name":"全棉时代一次性浴巾60*100cm…","brand":"全棉时代","total":77,"brand_rate":81.82},{"name":"全棉时代一次性内裤平角5条男士…","brand":"全棉时代","total":75,"brand_rate":76.0},{"name":"奈丝公主超净吸100%棉加长夜用420mm…","brand":"全棉时代","total":75,"brand_rate":80.0},{"name":"小野和子0D丝袜25℃-35°C…","brand":"小野和子","total":71,"brand_rate":81.69},{"name":"闪魔60w苹果17promax快充充电线…","brand":"闪魔","total":71,"brand_rate":84.51},{"name":"护舒宝考拉安睡裤M-L加大码裤型…","brand":"护舒宝","total":69,"brand_rate":84.06}]};
+var dailyChartInst = null;
+
+function renderDailyProduct() {
+  var sel = document.getElementById('date-select');
+  var dt = sel.value;
+  var rows = dailyProductRaw[dt];
+  if (!rows) return;
+  var names = rows.map(function(d){ return d.name.length>14?d.name.slice(0,14)+'…':d.name; });
+  var totals = rows.map(function(d){ return d.total; });
+  var rates  = rows.map(function(d){ return d.brand_rate; });
+  if (!dailyChartInst) {
+    dailyChartInst = echarts.init(document.getElementById('chart-product-daily'));
+    autoResize('chart-product-daily', dailyChartInst);
+  }
+  dailyChartInst.setOption({
+    grid:{top:40,bottom:80,left:'3%',right:'8%',containLabel:true},
+    xAxis:{type:'category',data:names,axisLabel:{rotate:35,fontSize:10,color:'rgba(17,25,37,0.85)',interval:0},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:[
+      {type:'value',name:'订单量',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},axisLabel:{color:'rgba(17,25,37,0.85)',fontSize:11},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+      {type:'value',name:'品牌新客率%',nameTextStyle:{color:'rgba(17,25,37,0.55)',fontSize:11},min:65,max:100,axisLabel:{color:'rgba(17,25,37,0.85)',fontSize:11,formatter:function(v){return v+'%';}},splitLine:{show:false}}
+    ],
+    legend:{bottom:0,textStyle:{fontSize:12,color:'rgba(17,25,37,0.70)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,textStyle:{fontSize:12},formatter:function(params){
+      var h='<div style="font-weight:500;margin-bottom:4px">'+params[0].axisValueLabel+'</div>';
+      params.forEach(function(p){
+        var val = p.seriesIndex===1 ? p.value+'%' : p.value.toLocaleString()+'单';
+        h+='<span style="display:inline-block;width:8px;height:8px;background:'+p.color+';border-radius:2px;margin-right:6px"></span>'+p.seriesName+'：'+val+'<br/>';
+      });
+      return h;
+    }},
+    series:[
+      {name:'当日订单量',type:'bar',data:totals,itemStyle:{color:C[0]},barMaxWidth:28},
+      {name:'品牌新客率（is_user_brand_first_order）',type:'line',yAxisIndex:1,data:rates,lineStyle:{color:C[1],width:2},itemStyle:{color:C[1]},symbol:'circle',symbolSize:5}
+    ]
+  }, true);
+}
+
+// 初始化日期选择器
+(function() {
+  var sel = document.getElementById('date-select');
+  var dates = Object.keys(dailyProductRaw).sort().reverse();
+  dates.forEach(function(dt) {
+    var opt = document.createElement('option');
+    opt.value = dt;
+    opt.text = dt.slice(0,4)+'-'+dt.slice(4,6)+'-'+dt.slice(6,8);
+    sel.appendChild(opt);
+  });
+  renderDailyProduct();
+})();
+
+// ===== 用户特征数据 =====
+// ===== 用户特征数据（全量，2026年3月真实数据，三表JOIN）=====
+// 性别数据
+var genderData = [
+  {gender:'0', brand_new:238174, total_orders:245736},
+  {gender:'1', brand_new:124871, total_orders:128263}
+];
+// 城市级别数据
+var cityData = [
+  {city:'新一线城市', brand_new:148003, total_orders:152261},
+  {city:'一线城市',   brand_new:134559, total_orders:139423},
+  {city:'二线城市',   brand_new:30506,  total_orders:31299},
+  {city:'三线城市',   brand_new:21496,  total_orders:21948},
+  {city:'未知',       brand_new:28638,  total_orders:29227}
+];
+// 年龄×性别数据（全量，16-87岁）
+var ageRaw = [
+  {age:16,gender:'0',brand_new:129},{age:16,gender:'1',brand_new:109},
+  {age:17,gender:'0',brand_new:642},{age:17,gender:'1',brand_new:452},
+  {age:18,gender:'0',brand_new:1993},{age:18,gender:'1',brand_new:1405},
+  {age:19,gender:'0',brand_new:3634},{age:19,gender:'1',brand_new:2537},
+  {age:20,gender:'0',brand_new:6092},{age:20,gender:'1',brand_new:3897},
+  {age:21,gender:'0',brand_new:7293},{age:21,gender:'1',brand_new:4688},
+  {age:22,gender:'0',brand_new:9803},{age:22,gender:'1',brand_new:6007},
+  {age:23,gender:'0',brand_new:11431},{age:23,gender:'1',brand_new:6772},
+  {age:24,gender:'0',brand_new:13016},{age:24,gender:'1',brand_new:7440},
+  {age:25,gender:'0',brand_new:12936},{age:25,gender:'1',brand_new:7121},
+  {age:26,gender:'0',brand_new:13102},{age:26,gender:'1',brand_new:7288},
+  {age:27,gender:'0',brand_new:12577},{age:27,gender:'1',brand_new:6433},
+  {age:28,gender:'0',brand_new:12593},{age:28,gender:'1',brand_new:6406},
+  {age:29,gender:'0',brand_new:13392},{age:29,gender:'1',brand_new:6605},
+  {age:30,gender:'0',brand_new:13336},{age:30,gender:'1',brand_new:6836},
+  {age:31,gender:'0',brand_new:12944},{age:31,gender:'1',brand_new:6890},
+  {age:32,gender:'0',brand_new:12357},{age:32,gender:'1',brand_new:6760},
+  {age:33,gender:'0',brand_new:10060},{age:33,gender:'1',brand_new:5256},
+  {age:34,gender:'0',brand_new:9169},{age:34,gender:'1',brand_new:4540},
+  {age:35,gender:'0',brand_new:8868},{age:35,gender:'1',brand_new:4199},
+  {age:36,gender:'0',brand_new:7312},{age:36,gender:'1',brand_new:3492},
+  {age:37,gender:'0',brand_new:6668},{age:37,gender:'1',brand_new:2986},
+  {age:38,gender:'0',brand_new:5727},{age:38,gender:'1',brand_new:2609},
+  {age:39,gender:'0',brand_new:4639},{age:39,gender:'1',brand_new:2065},
+  {age:40,gender:'0',brand_new:3677},{age:40,gender:'1',brand_new:1594},
+  {age:41,gender:'0',brand_new:3703},{age:41,gender:'1',brand_new:1489},
+  {age:42,gender:'0',brand_new:3647},{age:42,gender:'1',brand_new:1487},
+  {age:43,gender:'0',brand_new:3138},{age:43,gender:'1',brand_new:1248},
+  {age:44,gender:'0',brand_new:2182},{age:44,gender:'1',brand_new:919},
+  {age:45,gender:'0',brand_new:1894},{age:45,gender:'1',brand_new:783},
+  {age:46,gender:'0',brand_new:1609},{age:46,gender:'1',brand_new:673},
+  {age:47,gender:'0',brand_new:1346},{age:47,gender:'1',brand_new:541},
+  {age:48,gender:'0',brand_new:1147},{age:48,gender:'1',brand_new:422},
+  {age:49,gender:'0',brand_new:984},{age:49,gender:'1',brand_new:364},
+  {age:50,gender:'0',brand_new:833},{age:50,gender:'1',brand_new:353},
+  {age:51,gender:'0',brand_new:699},{age:51,gender:'1',brand_new:359},
+  {age:52,gender:'0',brand_new:679},{age:52,gender:'1',brand_new:249},
+  {age:53,gender:'0',brand_new:544},{age:53,gender:'1',brand_new:281},
+  {age:54,gender:'0',brand_new:516},{age:54,gender:'1',brand_new:211},
+  {age:55,gender:'0',brand_new:322},{age:55,gender:'1',brand_new:210},
+  {age:56,gender:'0',brand_new:305},{age:56,gender:'1',brand_new:152},
+  {age:57,gender:'0',brand_new:233},{age:57,gender:'1',brand_new:105},
+  {age:58,gender:'0',brand_new:135},{age:58,gender:'1',brand_new:82},
+  {age:59,gender:'0',brand_new:142},{age:59,gender:'1',brand_new:86},
+  {age:60,gender:'0',brand_new:110},{age:60,gender:'1',brand_new:75},
+  {age:61,gender:'0',brand_new:125},{age:61,gender:'1',brand_new:88},
+  {age:62,gender:'0',brand_new:146},{age:62,gender:'1',brand_new:61},
+  {age:63,gender:'0',brand_new:51},{age:63,gender:'1',brand_new:28},
+  {age:64,gender:'0',brand_new:41},{age:64,gender:'1',brand_new:45},
+  {age:65,gender:'0',brand_new:37},{age:65,gender:'1',brand_new:31},
+  {age:66,gender:'0',brand_new:40},{age:66,gender:'1',brand_new:30},
+  {age:67,gender:'0',brand_new:32},{age:67,gender:'1',brand_new:21},
+  {age:68,gender:'0',brand_new:52},{age:68,gender:'1',brand_new:24},
+  {age:69,gender:'0',brand_new:36},{age:69,gender:'1',brand_new:17},
+  {age:70,gender:'0',brand_new:7},{age:70,gender:'1',brand_new:1},
+  {age:71,gender:'0',brand_new:15},{age:71,gender:'1',brand_new:10},
+  {age:72,gender:'0',brand_new:5},{age:72,gender:'1',brand_new:3},
+  {age:73,gender:'0',brand_new:4},{age:73,gender:'1',brand_new:4},
+  {age:74,gender:'0',brand_new:3},{age:74,gender:'1',brand_new:7},
+  {age:75,gender:'0',brand_new:5},{age:75,gender:'1',brand_new:6},
+  {age:76,gender:'0',brand_new:3},{age:76,gender:'1',brand_new:4},
+  {age:77,gender:'0',brand_new:3},{age:77,gender:'1',brand_new:4},
+  {age:78,gender:'0',brand_new:0},{age:78,gender:'1',brand_new:4},
+  {age:79,gender:'0',brand_new:4},{age:79,gender:'1',brand_new:1},
+  {age:80,gender:'0',brand_new:3},{age:80,gender:'1',brand_new:2},
+  {age:81,gender:'1',brand_new:2},
+  {age:84,gender:'1',brand_new:1},
+  {age:85,gender:'0',brand_new:3},{age:85,gender:'1',brand_new:1},
+  {age:87,gender:'0',brand_new:1}
+];
+
+
+(function() {
+  var femaleTotal = genderData.filter(function(d){return d.gender==='0';})[0].brand_new;
+  var maleTotal   = genderData.filter(function(d){return d.gender==='1';})[0].brand_new;
+  var chart = echarts.init(document.getElementById('chart-gender'));
+  chart.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}单 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:12}},
+    series:[{
+      type:'pie',radius:['40%','70%'],center:['50%','45%'],
+      data:[
+        {value:femaleTotal,name:'女性',itemStyle:{color:C[0]}},
+        {value:maleTotal,  name:'男性',itemStyle:{color:C[1]}}
+      ],
+      label:{formatter:'{b}\n{d}%',fontSize:12}
+    }]
+  });
+  autoResize('chart-gender', chart);
+})();
+
+(function() {
+  var chart = echarts.init(document.getElementById('chart-city'));
+  chart.setOption({
+    tooltip:{trigger:'item',formatter:'{b}: {c}单 ({d}%)'},
+    legend:{bottom:0,textStyle:{fontSize:12}},
+    series:[{
+      type:'pie',radius:['40%','70%'],center:['50%','45%'],
+      data:cityData.map(function(d,i){return {value:d.brand_new,name:d.city,itemStyle:{color:C[i]}};}),
+      label:{formatter:'{b}\n{d}%',fontSize:12}
+    }]
+  });
+  autoResize('chart-city', chart);
+})();
+
+(function() {
+  var ageMap0={}, ageMap1={};
+  ageRaw.forEach(function(d){
+    if(d.gender==='0') ageMap0[d.age]=(ageMap0[d.age]||0)+d.brand_new;
+    else if(d.gender==='1') ageMap1[d.age]=(ageMap1[d.age]||0)+d.brand_new;
+  });
+  // 只保留男女都有数据的年龄段（全量数据，无截断）
+  var allAges = [];
+  ageRaw.forEach(function(d){ if(allAges.indexOf(d.age)<0) allAges.push(d.age); });
+  allAges.sort(function(a,b){return a-b;});
+  var ages = allAges.filter(function(a){ return ageMap0[a]>0 && ageMap1[a]>0; });
+  var chart = echarts.init(document.getElementById('chart-age'));
+  chart.setOption({
+    grid:{top:30,bottom:40,left:'3%',right:'3%',containLabel:true},
+    xAxis:{type:'category',data:ages.map(function(a){return a+'岁';}),axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'},axisLine:{lineStyle:{color:'#CFD1D3'}}},
+    yAxis:{type:'value',axisLabel:{fontSize:11,color:'rgba(17,25,37,0.85)'},splitLine:{lineStyle:{color:'#F0F0F0'}}},
+    legend:{bottom:0,textStyle:{fontSize:12,color:'rgba(17,25,37,0.70)'}},
+    tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#E5E5E5',borderWidth:1,formatter:function(params){
+      var h='<div style="font-weight:500;margin-bottom:4px">'+params[0].axisValueLabel+'</div>';
+      params.forEach(function(p){h+='<span style="display:inline-block;width:8px;height:8px;background:'+p.color+';border-radius:2px;margin-right:6px"></span>'+p.seriesName+'：'+(p.value||0)+'单<br/>';});
+      return h;
+    }},
+    series:[
+      {name:'女性品牌新客（is_user_brand_first_order）',type:'bar',data:ages.map(function(a){return ageMap0[a]||0;}),itemStyle:{color:C[0]},barMaxWidth:30},
+      {name:'男性品牌新客（is_user_brand_first_order）',type:'bar',data:ages.map(function(a){return ageMap1[a]||0;}),itemStyle:{color:C[1]},barMaxWidth:30}
+    ]
+  });
+  autoResize('chart-age', chart);
+})();
+</script>
+
+<div class="page-footer">
+  数据来源：mart_lingshou.aggr_ord_order_info_gtv_dd / aggr_ord_order_detail_gtv_dd / aggr_usr_user_poi_gtv_first_order_info_base_dd / topic_usr_stp_analyze_user_tag_aggr_d &nbsp;|&nbsp;
+  口径：first_owner_name=非食专卖业务组 · second_owner_name含"旗舰" · is_arrange=1 &nbsp;|&nbsp;
+  by天商品数据：2026-03-15 至 2026-04-01 每日 TOP20（真实数据，待更新至2025-10-01起全量） &nbsp;|&nbsp; 生成时间：2026-04-02
+</div>
+</body>
+</html>
