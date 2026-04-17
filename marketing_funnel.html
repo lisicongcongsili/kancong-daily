@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品营销五盘链路 · 角色定位与作用框架</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1C1C1E;
+    font-family: -apple-system, "PingFang SC", "SF Pro Display", "Helvetica Neue", sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+  }
+  .frame {
+    width: 100%;
+    min-width: 900px;
+    background: #1C1C1E;
+  }
+
+  /* ── 标题栏 ── */
+  .header {
+    background: #2C2C2E;
+    border-bottom: 1px solid #48484A;
+    padding: 8px 20px 8px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: #0A84FF;
+  }
+  .header-left .sub { font-size: 10px; color: #8E8E93; letter-spacing: 0.5px; }
+  .header-left .title { font-size: 17px; font-weight: 700; color: #fff; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .header-right .legend { display: flex; gap: 16px; justify-content: flex-end; margin-bottom: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #8E8E93; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .header-right .tagline { font-size: 10px; color: #636366; }
+
+  /* ── 主体布局 ── */
+  .body {
+    display: flex;
+    height: 900px;
+    position: relative;
+    overflow: visible;
+  }
+
+  /* 弧形箭头标注文字 */
+  .arc-label {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    pointer-events: none;
+    z-index: 20;
+    transform: translateY(-50%);
+  }
+  .arc-label span {
+    font-size: 9px;
+    line-height: 1.3;
+    font-family: -apple-system, "PingFang SC", Helvetica, sans-serif;
+    opacity: 0.9;
+  }
+
+  /* ── 左侧漏斗区 ── */
+  .funnel-wrap {
+    position: relative;
+    width: 460px;
+    flex-shrink: 0;
+    background: #2C2C2E;
+    border-right: 1px solid #48484A;
+  }
+
+  /* SVG 弧形箭头覆盖层（覆盖整个 body） */
+  .funnel-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 0;
+  }
+
+  /* ── 漏斗层 ── */
+  .funnel-layers {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  .layer {
+    position: absolute;
+    left: 0; right: 0;
+    overflow: hidden;
+  }
+  /* 用 clip-path 实现梯形 */
+  .layer-inner {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 10px;
+  }
+  .layer-num {
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+  .layer-content {
+    flex: 1;
+    padding: 0 8px 0 4px;
+    min-width: 0;
+  }
+  .layer-en-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .layer-en { font-size: 9px; letter-spacing: 0.8px; font-weight: 500; }
+  .layer-role {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    opacity: 0.85;
+  }
+  .layer-zh { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .layer-desc { font-size: 10px; color: #8E8E93; line-height: 1.5; }
+
+  /* 腰部 */
+  .waist {
+    position: absolute;
+    left: 0; right: 0;
+    background: #3A3A3C;
+    border-top: 1px solid #48484A;
+    border-bottom: 1px solid #48484A;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 10px;
+    color: #8E8E93;
+    gap: 8px;
+  }
+  .waist-diamond {
+    width: 8px; height: 8px;
+    background: #BF5AF2;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  /* ── 右侧面板 ── */
+  .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    font-size: 9px;
+    color: #636366;
+    padding: 5px 12px 4px;
+    border-bottom: 1px solid #48484A;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .panel-blocks {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .block {
+    flex: 1;
+    border-bottom: 1px solid #48484A;
+    background: #3A3A3C;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .block:last-child { border-bottom: none; }
+  .block-accent {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .block-body {
+    flex: 1;
+    padding: 6px 10px 6px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 0;
+  }
+  .block-top { }
+  .block-en { font-size: 9px; letter-spacing: 0.6px; margin-bottom: 3px; }
+  .block-title { font-size: 12px; font-weight: 700; color: #EBEBF5; margin-bottom: 6px; }
+  .block-cols {
+    display: flex;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+  .block-col {
+    flex: 1;
+    padding-right: 10px;
+    border-right: 1px solid #48484A;
+    min-width: 0;
+  }
+  .block-col:last-child { border-right: none; padding-right: 0; }
+  .col-title { font-size: 11px; font-weight: 700; color: #EBEBF5; margin-bottom: 3px; }
+  .col-line1 { font-size: 10px; color: #8E8E93; line-height: 1.4; }
+  .col-line2 { font-size: 10px; color: #636366; line-height: 1.4; }
+  .block-insight {
+    font-size: 9px;
+    padding: 4px 10px 4px 22px;
+    border-top: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .insight-diamond {
+    position: absolute;
+    left: 10px;
+    width: 7px; height: 7px;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  /* ── 底部总结栏 ── */
+  .footer {
+    border-top: 1px solid #48484A;
+    display: flex;
+    gap: 2px;
+    padding: 6px 12px;
+    background: #1C1C1E;
+  }
+  .footer-card {
+    flex: 1;
+    background: #3A3A3C;
+    border: 1px solid #48484A;
+    border-radius: 4px;
+    padding: 8px 10px 8px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .footer-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .footer-title { font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+  .footer-line { font-size: 10px; color: #8E8E93; line-height: 1.5; }
+
+  .copyright {
+    font-size: 9px;
+    color: #636366;
+    padding: 6px 12px 8px;
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- 标题栏 -->
+  <div class="header">
+    <div class="header-left">
+      <div class="sub">MARKETING FRAMEWORK · FIVE-LAYER FUNNEL MODEL</div>
+      <div class="title">商品营销五盘链路 · 盘目标 → 盘供给 → 盘转化 → 盘用户 → 盘流量</div>
+    </div>
+    <div class="header-right">
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#32D74B"></div>商运主导</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0A84FF"></div>PM主导</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#BF5AF2"></div>PM+商运协同</div>
+      </div>
+      <div class="tagline">流量引流入场 → 用户分层运营 → 转化玩法与价格力 → 供给货盘与库存 → 目标拆解与预测</div>
+    </div>
+  </div>
+
+  <!-- 主体 -->
+  <div class="body">
+
+    <!-- 左侧漏斗 -->
+    <div class="funnel-wrap" id="funnelWrap">
+      <div class="funnel-layers" id="funnelLayers"></div>
+    </div>
+    <!-- 弧形箭头 SVG（覆盖整个 body，坐标相对 body） -->
+    <svg class="funnel-svg" id="funnelSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <!-- 右侧面板 -->
+    <div class="panel">
+      <div class="panel-header">DETAILED BREAKDOWN · 各层精细化拆解</div>
+      <div class="panel-blocks" id="panelBlocks"></div>
+    </div>
+
+  </div>
+
+  <!-- 底部总结栏 -->
+  <div class="footer">
+    <div class="footer-card" style="--accent:#32D74B">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#32D74B;border-radius:4px 0 0 4px"></div>
+      <div class="footer-title">供给侧筹备 · 商运主导</div>
+      <div class="footer-line">目标→供给：自上而下拆解</div>
+      <div class="footer-line">货盘与价格机制支撑目标达成</div>
+    </div>
+    <div class="footer-card">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#BF5AF2;border-radius:4px 0 0 4px"></div>
+      <div class="footer-title">营销放大器 · PM主导</div>
+      <div class="footer-line">营销层连接供给与用户</div>
+      <div class="footer-line">福利玩法将供给转化为购买</div>
+    </div>
+    <div class="footer-card">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#0A84FF;border-radius:4px 0 0 4px"></div>
+      <div class="footer-title">需求侧运营 · PM主导</div>
+      <div class="footer-line">用户→曝光：自下而上洞察</div>
+      <div class="footer-line">触达策略匹配用户场景需求</div>
+    </div>
+  </div>
+
+  <div class="copyright">五盘链路框架 · 商品营销角色定位 · 供给筹备 × 营销放大 × 需求运营</div>
+</div>
+
+<script>
+// ── 数据 ──
+const LAYERS = [
+  {
+    en: "TRAFFIC", zh: "盘流量", role: "PM主导",
+    accent: "#0A84FF", dark: "#0A2040",
+    desc: "站内大颗粒/频道/feeds/天降/精准营销；域外小红书/信息流/CPS；线下外卖柜/快闪；商业化RTB广告围绕品牌人群资产做功；盘市场资源（商家投入）"
+  },
+  {
+    en: "USER", zh: "盘用户", role: "PM主导",
+    accent: "#30D5C8", dark: "#0A2E2C",
+    desc: "围绕O-Better人群做功：O=目标用户（潜客），B=有品牌浏览行为人群；活动前明确三环用户，拉新+复购并重，用好会员工具做老客运营，按方法论沉淀用户资产"
+  },
+  {
+    en: "CONVERSION", zh: "盘转化", role: "PM主导",
+    accent: "#BF5AF2", dark: "#2D1A3A",
+    desc: "确保主推爆品站内外价格力水平，与商家谈判价格并盯盘防分销临时降价；配置转化玩法：免单带品牌新客、买赠拉客单价；落地页→加购→下单→支付全链路优化"
+  },
+  {
+    en: "SUPPLY", zh: "盘供给", role: "商运主导",
+    accent: "#FF9F0A", dark: "#3A2800",
+    desc: "依据爆发系数推测爆发类目，定义TopX爆品（同品手搓），保库存=保X%销售；确保商品铺货/尺码热销/店铺产品工具配置；进店用户找得到，搜索下挂品正常显示"
+  },
+  {
+    en: "OBJECTIVE", zh: "盘目标", role: "商运主导",
+    accent: "#32D74B", dark: "#1A3A20",
+    desc: "基期/活动期多周期对比；盘对应周期高销三级类目渗透率；盘历史爆发系数，参考行业爆发系数；看爆发类目与爆发商品，预测活动期GMV/订单量/新客数目标"
+  },
+];
+
+const RIGHT_BLOCKS = [
+  {
+    ci: 0, en: "01  TRAFFIC · 盘流量", title: "站内引流 · 域外拓客 · 商业化投放",
+    cols: [
+      { title: "站内渠道", l1: "大颗粒/频道/feeds/天降", l2: "精准营销坑位按人群分层投放" },
+      { title: "域外渠道", l1: "小红书种草 / 信息流 / CPS", l2: "线下外卖柜/快闪触达场景人群" },
+      { title: "商业化投放", l1: "RTB广告围绕品牌人群资产做功", l2: "盘市场资源，推动商家配套投入" },
+    ], insight: "关键：心智人群+精准人群双轨加码，ROI优先分配资源"
+  },
+  {
+    ci: 1, en: "02  USER · 盘用户", title: "人群圈定 · 三环运营 · 资产沉淀",
+    cols: [
+      { title: "O-Better人群", l1: "O=潜客目标用户", l2: "B=有品牌浏览行为的意向人群", l3: "Better模型6层：B大众→E1发现→T1兴趣→T2首购→E2复购→R忠诚" },
+      { title: "三环用户策略", l1: "拉新（品牌新客）+ 复购（老客激活）", l2: "活动前明确三环，差异化权益触达" },
+      { title: "用户资产沉淀", l1: "会员工具做老客深度运营", l2: "按方法论沉淀人群资产，持续复用" },
+    ], insight: "关键：活动前锁定人群包，活动中加码，活动后沉淀复用"
+  },
+  {
+    ci: 2, en: "03  CONVERSION · 盘转化", title: "价格力保障 · 转化玩法 · 全链路优化",
+    cols: [
+      { title: "价格力管控", l1: "站内外价格对齐，确保竞争优势", l2: "与商家谈判，盯盘防分销临时降价" },
+      { title: "转化玩法", l1: "免单：带动品牌新客拉新", l2: "买赠：拉升客单价与连带率" },
+      { title: "全链路优化", l1: "落地页→加购→下单→支付", l2: "每步漏斗专项优化，减少流失" },
+    ], insight: "关键：价格力是转化底座，玩法是放大器，缺一不可"
+  },
+  {
+    ci: 3, en: "04  SUPPLY · 盘供给", title: "爆品定义 · 库存保障 · 货架可见",
+    cols: [
+      { title: "爆品定义", l1: "依爆发系数推测爆发类目", l2: "同品手搓定义TopX爆品清单" },
+      { title: "库存保障", l1: "保库存 = 保X%预测销售量", l2: "不同品牌备货策略差异化管理" },
+      { title: "货架可见", l1: "铺货/尺码热销/产品工具配置", l2: "进店找得到，搜索下挂品正常显示" },
+    ], insight: "关键：没有有竞争力的货盘与充足库存，再好的营销也是空炮"
+  },
+  {
+    ci: 4, en: "05  OBJECTIVE · 盘目标", title: "周期对比 · 爆发预测 · 目标拆解",
+    cols: [
+      { title: "周期对比", l1: "基期 vs 活动期多周期数据对比", l2: "盘高销三级类目渗透率变化" },
+      { title: "爆发系数", l1: "盘历史爆发系数 + 参考行业系数", l2: "识别爆发类目与爆发商品" },
+      { title: "目标拆解", l1: "预测GMV/订单量/新客数目标", l2: "逐级拆解到品类→品牌→商家粒度" },
+    ], insight: null
+  },
+];
+
+// ── 布局常量：倒梯形（顶宽底窄），5层均匀，无腰部 ──
+const TOTAL_H = 900;
+const LH = Math.floor(TOTAL_H / 5);  // 180
+// 5层等高，最后一层补齐余量
+const LAYER_H = [LH, LH, LH, LH, TOTAL_H - LH*4];
+// y 起点（6个点：0,LH,2LH,3LH,4LH,TOTAL_H）
+let ys = [0];
+for (let i = 0; i < LAYER_H.length; i++) ys.push(ys[i] + LAYER_H[i]);
+
+// 漏斗宽度（funnel-wrap 460px）
+// 倒梯形：顶部最宽(XW)，每层向内收窄 S，底部最窄
+const FW = 460;
+const FXL = 16;
+const FXR = 444;
+const S   = 30;  // 每层收窄步长
+const XW  = [FXL,       FXR      ];  // 最宽（L1顶）
+const XM1 = [FXL+S,     FXR-S    ];  // L1底/L2顶
+const XM2 = [FXL+S*2,   FXR-S*2  ];  // L2底/L3顶
+const XM3 = [FXL+S*3,   FXR-S*3  ];  // L3底/L4顶
+const XN  = [FXL+S*4,   FXR-S*4  ];  // 最窄（L4底/L5顶/L5底）
+
+// 每层 xtop/xbot（倒梯形：从上到下逐渐收窄）
+const LAYER_X = [
+  { top: XW,  bot: XM1 },  // L1 盘流量（最宽）
+  { top: XM1, bot: XM2 },  // L2 盘用户
+  { top: XM2, bot: XM3 },  // L3 盘转化
+  { top: XM3, bot: XN  },  // L4 盘供给
+  { top: XN,  bot: XN  },  // L5 盘目标（最窄，矩形）
+];
+
+// ── 渲染漏斗层 ──
+function buildFunnel() {
+  const wrap = document.getElementById('funnelLayers');
+  // 层索引映射（5层直接对应）
+  const layerMap = [0, 1, 2, 3, 4];
+
+  layerMap.forEach((hi, li) => {
+    const layer = LAYERS[li];
+    const yTop  = ys[hi];
+    const yBot  = ys[hi + 1];
+    const h     = yBot - yTop;
+    const xl_t  = LAYER_X[hi].top[0];
+    const xr_t  = LAYER_X[hi].top[1];
+    const xl_b  = LAYER_X[hi].bot[0];
+    const xr_b  = LAYER_X[hi].bot[1];
+
+    // clip-path 梯形（坐标相对于元素自身，y 从 0 开始）
+    const clipPts = `${xl_t}px 0px, ${xr_t}px 0px, ${xr_b}px ${h}px, ${xl_b}px ${h}px`;
+
+    const div = document.createElement('div');
+    div.className = 'layer';
+    div.style.cssText = `
+      top: ${yTop}px;
+      height: ${h + 1}px;
+      background: ${layer.dark};
+      clip-path: polygon(${clipPts});
+      border-top: 1px solid ${layer.accent};
+    `;
+
+    // 内容区：用该层左右两侧较窄的边（bottom）来限定，确保文字不被梯形clip裁掉
+    const safeL = Math.max(xl_t, xl_b) + 12;
+    const safeR = FW - Math.min(xr_t, xr_b) + 12;
+    const content = document.createElement('div');
+    content.style.cssText = `
+      position:absolute;
+      left:${safeL}px;
+      top:8px;
+      right:${safeR}px;
+      bottom:4px;
+    `;
+    content.innerHTML = `
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
+        <span style="font-size:8px;color:${layer.accent};letter-spacing:0.8px;font-weight:500">${layer.en}</span>
+        <span style="font-size:7px;font-weight:700;color:${layer.accent};background:${layer.accent}22;padding:1px 4px;border-radius:3px">${layer.role}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">${layer.zh}</div>
+      <div style="font-size:9px;color:#8E8E93;line-height:1.45">${layer.desc}</div>
+    `;
+
+    div.appendChild(content);
+    wrap.appendChild(div);
+  });
+
+}
+
+// ── 渲染右侧面板 ──
+function buildPanel() {
+  const container = document.getElementById('panelBlocks');
+  const LAYER_COLORS = ["#32D74B","#0A84FF","#BF5AF2","#FF9F0A","#30D5C8"];
+
+  RIGHT_BLOCKS.forEach((blk, i) => {
+    const acc = LAYER_COLORS[blk.ci];
+    const div = document.createElement('div');
+    div.className = 'block';
+
+    const insightHTML = blk.insight ? `
+      <div class="block-insight" style="color:${acc};border-color:${acc}44;background:${acc}14">
+        <div class="insight-diamond" style="background:${acc}"></div>
+        ${blk.insight}
+      </div>
+    ` : '';
+
+    div.innerHTML = `
+      <div class="block-accent" style="background:${acc}"></div>
+      <div class="block-body">
+        <div class="block-top">
+          <div class="block-en" style="color:${acc}">${blk.en}</div>
+          <div class="block-title">${blk.title}</div>
+        </div>
+        <div class="block-cols">
+          ${blk.cols.map(col => `
+            <div class="block-col">
+              <div class="col-title">${col.title}</div>
+              <div class="col-line1">${col.l1}</div>
+              <div class="col-line2">${col.l2}</div>
+              ${col.l3 ? `<div class="col-line2" style="color:#636366;margin-top:2px;font-size:9px">${col.l3}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ${insightHTML}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ── 绘制双向箭头（漏斗左右外侧竖线，不进入漏斗内部）──
+function buildArrows() {
+  const svg = document.getElementById('funnelSvg');
+
+  // 漏斗左边界 x=FXL=16，右边界 x=FXR=444
+  // SVG 坐标相对于 .body，funnel-wrap 在 body 最左侧
+  // 左侧竖线：x = FXL - 10（漏斗左边外侧）
+  // 右侧竖线：x = FXR + 10（漏斗右边外侧）
+  const xL = FXL - 10;
+  const xR = FXR + 10;
+  const yTop = ys[0] + 6;
+  const yBot = ys[5] - 6;
+  const mid  = (yTop + yBot) / 2;
+  const S    = 7;  // 箭头大小
+
+  function arrow(x, y, dir) {
+    // dir: 'up' | 'down'
+    const sign = dir === 'down' ? 1 : -1;
+    return `<polygon points="${x},${y} ${x-S*0.6},${y-sign*S} ${x+S*0.6},${y-sign*S}" fill="currentColor"/>`;
+  }
+
+  // 左侧：蓝色，向下箭头（目标→流量方向）
+  svg.innerHTML = `
+    <g color="#0A84FF">
+      <line x1="${xL}" y1="${yTop}" x2="${xL}" y2="${yBot}"
+        stroke="#0A84FF" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+      ${arrow(xL, yBot, 'down').replace('currentColor','#0A84FF')}
+      ${arrow(xL, yTop, 'up').replace('currentColor','#0A84FF')}
+    </g>
+    <g color="#32D74B">
+      <line x1="${xR}" y1="${yTop}" x2="${xR}" y2="${yBot}"
+        stroke="#32D74B" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7"/>
+      ${arrow(xR, yBot, 'down').replace('currentColor','#32D74B')}
+      ${arrow(xR, yTop, 'up').replace('currentColor','#32D74B')}
+    </g>
+  `;
+}
+
+// ── 初始化 ──
+buildFunnel();
+buildPanel();
+buildArrows();
+</script>
+</body>
+</html>
